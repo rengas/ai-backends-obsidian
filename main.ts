@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, Menu } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, Menu, MenuItem } from 'obsidian';
 import * as yaml from 'js-yaml';
 
 interface AIPluginSettings {
@@ -74,27 +74,39 @@ export default class AIPlugin extends Plugin {
 		await this.loadSettings();
 		await this.loadConfig();
 
-		// Add context menu for selected text
+		// Add context menu for selected text with AI Backends submenu
 		this.registerEvent(
 			this.app.workspace.on('editor-menu', (menu: Menu, editor: Editor, view: MarkdownView) => {
 				const selection = editor.getSelection();
 				if (selection.length > 0) {
-					menu.addItem((item) => {
-						item
-							.setTitle('Summarize')
-							.setIcon('document-text')
-							.onClick(async () => {
-								await this.summarizeText(editor, selection);
-							});
-					});
 
-					menu.addItem((item) => {
+
+					menu.addItem((item: MenuItem) => {
 						item
-							.setTitle('Extract Keywords')
-							.setIcon('tag')
-							.onClick(async () => {
-								await this.extractKeywords(editor, selection);
-							});
+							.setTitle('AI Backends')
+							.setIcon('brain-circuit')
+							.setSection('selection');
+
+						// Create the submenu
+						const subMenu: Menu = (item as any).setSubmenu();
+						// Add items to the submenu
+						subMenu.addItem((subItem: MenuItem) => {
+							subItem
+								.setTitle('Summarize')
+								.setIcon('document-text')
+								.onClick(async () => {
+									await this.summarizeText(editor, selection);
+								});
+						});
+
+						subMenu.addItem((subItem: MenuItem) => {
+							subItem
+								.setTitle('Extract Keywords')
+								.setIcon('tag')
+								.onClick(async () => {
+									await this.extractKeywords(editor, selection);
+								});
+						});
 					});
 				}
 			})
