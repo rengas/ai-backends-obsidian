@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, Menu, MenuItem } from 'obsidian';
+import { App, Editor, MarkdownView, Notice, Plugin, PluginSettingTab, Setting, Menu, MenuItem } from 'obsidian';
 import * as yaml from 'js-yaml';
 
 interface AIPluginSettings {
@@ -288,10 +288,6 @@ export default class AIPlugin extends Plugin {
 		}
 	}
 
-	onunload() {
-		// Cleanup code here
-	}
-
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
@@ -300,6 +296,11 @@ export default class AIPlugin extends Plugin {
 		await this.saveData(this.settings);
 		await this.loadConfig(); // Reload config when settings change
 	}
+
+	onunload() {
+		// Cleanup code here
+	}
+
 }
 
 class AIPluginSettingTab extends PluginSettingTab {
