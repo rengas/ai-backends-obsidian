@@ -1,34 +1,37 @@
-# Obsidian Sample Plugin
+# AI Backends Plugin for Obsidian
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+This plugin integrates with aibackends.com to provide AI-powered text analysis features directly within Obsidian. Transform your notes with intelligent summarization and keyword extraction using various AI providers.
 
-This project uses Typescript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in Typescript Definition format, which contains TSDoc comments describing what it does.
+## Features
 
-**Note:** The Obsidian API is still in early alpha and is subject to change at any time!
+- **Text Summarization**: Generate concise summaries of selected text using configurable AI models
+- **Keyword Extraction**: Extract relevant keywords and topics from your content
+- **Multiple AI Providers**: Support for OpenAI, Anthropic, Ollama, and other providers through aibackends.com
+- **Flexible Configuration**: Use YAML configuration files to customize AI settings per operation
+- **Context Menu Integration**: Right-click on selected text for quick access to AI features
+- **Command Palette**: Access AI functions through Obsidian's command palette
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open Sample Modal" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+## Setup
 
-## First time developing plugins?
+### 1. Install the Plugin
 
-Quick starting guide for new plugin devs:
+1. Download the latest release or clone this repository
+2. Place the plugin files in your `.obsidian/plugins/ai-backends-obsidian/` folder
+3. Enable the plugin in Obsidian's Community Plugins settings
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+### 2. Configure API Settings
 
-## Resources
+1. Go to Settings → AI Backends Plugin
+2. Set your **API URL** (typically `http://localhost:3000` if running aibackends locally)
+3. Set the **Configuration File Path** (e.g., `ai-config/config.yaml`)
 
-- [Obsidian Developer Documentation](https://docs.obsidian.md/Home)
-- [Obsidian API](https://github.com/obsidianmd/obsidian-api)
+### 3. Create Configuration File
+Create a YAML configuration file at the path specified in settings:
+```
+summarize:
+  provider: "ollama"
+  model: "gemma3:4b"
+  temperature: 0.3
+  stream: false
+  maxLength: 500
+```
