@@ -245,9 +245,11 @@ export default class AIPlugin extends Plugin {
 				throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
 			}
 
-			// Get cursor at the end of selection
-			const cursor = editor.getCursor('to');
-			editor.setCursor(cursor);
+			// Always append to the end of the document
+			const lastLine = editor.lastLine();
+			const lastLineContent = editor.getLine(lastLine);
+			const endOfDocument = { line: lastLine, ch: lastLineContent.length };
+			editor.setCursor(endOfDocument);
 
 			// Check content type to determine if it's a streaming response
 			const contentType = response.headers.get('content-type') || '';
@@ -260,11 +262,13 @@ export default class AIPlugin extends Plugin {
 				const reader = response.body.getReader();
 				const decoder = new TextDecoder();
 				
-				// Insert summary header without duplicating the selected text
-				editor.replaceRange('\n\n**Summary:** ', cursor, cursor);
+				// Insert summary header at the end of document
+				editor.replaceRange('\n\n**Summary:**\n\n', endOfDocument, endOfDocument);
 				
-				// Force editor to update before we start streaming
-				editor.setCursor(cursor);
+				// Update cursor position after inserting the header
+				const newLastLine = editor.lastLine();
+				const newLastLineContent = editor.getLine(newLastLine);
+				editor.setCursor({ line: newLastLine, ch: newLastLineContent.length });
 				
 				let buffer = '';
 				let chunkCount = 0;
@@ -385,8 +389,8 @@ export default class AIPlugin extends Plugin {
 				// Handle non-streaming response
 				const result: SummarizeResponse = await response.json();
 				
-				// Append summary after the selected text without duplicating the original text
-				editor.replaceRange(`\n\n**Summary:** ${result.summary}`, cursor, cursor);
+				// Append summary at the end of the document
+				editor.replaceRange(`\n\n**Summary:**\n\n ${result.summary}`, endOfDocument, endOfDocument);
 				
 				new Notice('Text summarized successfully');
 			}

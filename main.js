@@ -2812,15 +2812,19 @@ var AIPlugin = class extends import_obsidian.Plugin {
         const errorText = await response.text();
         throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
-      const cursor = editor.getCursor("to");
-      editor.setCursor(cursor);
+      const lastLine = editor.lastLine();
+      const lastLineContent = editor.getLine(lastLine);
+      const endOfDocument = { line: lastLine, ch: lastLineContent.length };
+      editor.setCursor(endOfDocument);
       const contentType = response.headers.get("content-type") || "";
       const isStreaming = this.config.summarize.stream && (contentType.includes("text/event-stream") || contentType.includes("application/x-ndjson") || response.body);
       if (isStreaming && response.body) {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
-        editor.replaceRange("\n\n**Summary:** ", cursor, cursor);
-        editor.setCursor(cursor);
+        editor.replaceRange("\n\n**Summary:**\n\n", endOfDocument, endOfDocument);
+        const newLastLine = editor.lastLine();
+        const newLastLineContent = editor.getLine(newLastLine);
+        editor.setCursor({ line: newLastLine, ch: newLastLineContent.length });
         let buffer = "";
         let chunkCount = 0;
         let totalContent = "";
@@ -2856,13 +2860,13 @@ var AIPlugin = class extends import_obsidian.Plugin {
                 if (content) {
                   totalContent += content;
                   await new Promise((resolve) => setTimeout(resolve, 10));
-                  const lastLine = editor.lastLine();
-                  const lastLineContent = editor.getLine(lastLine);
-                  const appendPosition = { line: lastLine, ch: lastLineContent.length };
+                  const lastLine2 = editor.lastLine();
+                  const lastLineContent2 = editor.getLine(lastLine2);
+                  const appendPosition = { line: lastLine2, ch: lastLineContent2.length };
                   editor.replaceRange(content, appendPosition, appendPosition);
-                  const newLastLine = editor.lastLine();
-                  editor.setCursor({ line: newLastLine, ch: editor.getLine(newLastLine).length });
-                  editor.scrollIntoView({ from: { line: newLastLine, ch: 0 }, to: { line: newLastLine, ch: 0 } }, true);
+                  const newLastLine2 = editor.lastLine();
+                  editor.setCursor({ line: newLastLine2, ch: editor.getLine(newLastLine2).length });
+                  editor.scrollIntoView({ from: { line: newLastLine2, ch: 0 }, to: { line: newLastLine2, ch: 0 } }, true);
                 }
                 if (streamData.done) {
                   new import_obsidian.Notice("Text summarized successfully");
@@ -2883,9 +2887,9 @@ var AIPlugin = class extends import_obsidian.Plugin {
                 const content = streamData.content || streamData.text || streamData.delta || streamData.chunk || streamData.message;
                 if (content) {
                   totalContent += content;
-                  const lastLine = editor.lastLine();
-                  const lastLineContent = editor.getLine(lastLine);
-                  const appendPosition = { line: lastLine, ch: lastLineContent.length };
+                  const lastLine2 = editor.lastLine();
+                  const lastLineContent2 = editor.getLine(lastLine2);
+                  const appendPosition = { line: lastLine2, ch: lastLineContent2.length };
                   editor.replaceRange(content, appendPosition, appendPosition);
                 }
               }
@@ -2902,7 +2906,9 @@ var AIPlugin = class extends import_obsidian.Plugin {
         const result = await response.json();
         editor.replaceRange(`
 
-**Summary:** ${result.summary}`, cursor, cursor);
+**Summary:**
+
+ ${result.summary}`, endOfDocument, endOfDocument);
         new import_obsidian.Notice("Text summarized successfully");
       }
     } catch (error) {
@@ -2922,13 +2928,12 @@ var AIPlugin = class extends import_obsidian.Plugin {
       const requestBody = {
         payload: {
           text,
-          maxKeywords: this.config.keywords.maxKeywords || 10,
-          temperature: this.config.keywords.temperature || 1
+          maxKeywords: this.config.keywords.maxKeywords || 10
         },
         config: {
           provider: this.config.keywords.provider,
           model: this.config.keywords.model,
-          temperature: this.config.keywords.temperature,
+          temperature: this.config.keywords.temperature || 0.3,
           stream: this.config.keywords.stream
         }
       };
