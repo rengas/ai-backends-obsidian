@@ -40,7 +40,6 @@ interface KeywordsRequest {
 	payload: {
 		text: string;
 		maxKeywords: number;
-		temperature: number;
 	};
 	config: AIOperationConfig;
 }
@@ -50,6 +49,24 @@ interface SummarizeResponse {
 	provider: string;
 	model: string;
 	usage: {
+		input_tokens: number;
+		output_tokens: number;
+		total_tokens: number;
+	};
+	apiVersion: string;
+}
+
+// Streaming response interface - supports multiple formats
+interface StreamChunk {
+	content?: string;
+	text?: string;
+	delta?: string;
+	chunk?: string;
+	message?: string;
+	done?: boolean;
+	provider?: string;
+	model?: string;
+	usage?: {
 		input_tokens: number;
 		output_tokens: number;
 		total_tokens: number;
@@ -64,6 +81,7 @@ interface KeywordsResponse {
 		output_tokens: number;
 		total_tokens: number;
 	};
+	apiVersion: string;
 }
 
 export default class AIPlugin extends Plugin {
@@ -72,7 +90,11 @@ export default class AIPlugin extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
-		await this.loadConfig();
+		
+		// Delay config loading to ensure vault is ready
+		this.app.workspace.onLayoutReady(() => {
+			this.loadConfig();
+		});
 
 		// Add context menu for selected text with AI Backends submenu
 		this.registerEvent(
@@ -143,6 +165,8 @@ export default class AIPlugin extends Plugin {
 		this.addSettingTab(new AIPluginSettingTab(this.app, this));
 	}
 
+
+
 	async loadConfig() {
 		try {
 			if (!this.settings.configFilePath) {
@@ -210,25 +234,168 @@ export default class AIPlugin extends Plugin {
 				headers: {
 					'Content-Type': 'application/json',
 					'Origin': 'app://obsidian.md',
-
+					'Accept': this.config.summarize.stream ? 'text/event-stream, application/x-ndjson, application/json' : 'application/json'
 				},
 				body: JSON.stringify(requestBody)
 			});
 
 			if (!response.ok) {
-				throw new Error(`HTTP error! status: ${response.status}`);
+				const errorText = await response.text();
+
+				throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
 			}
 
-			const result: SummarizeResponse = await response.json();
+			// Always append to the end of the document
+			const lastLine = editor.lastLine();
+			const lastLineContent = editor.getLine(lastLine);
+			const endOfDocument = { line: lastLine, ch: lastLineContent.length };
+			editor.setCursor(endOfDocument);
 
-			// Append summary after the selected text
-			const cursor = editor.getCursor('to');
-			editor.setCursor(cursor);
-			editor.replaceSelection(`${text}\n\n**Summary:** ${result.summary}`);
+			// Check content type to determine if it's a streaming response
+			const contentType = response.headers.get('content-type') || '';
+			const isStreaming = this.config.summarize.stream && 
+				(contentType.includes('text/event-stream') || contentType.includes('application/x-ndjson') || response.body);
 
-			new Notice('Text summarized successfully');
+
+			if (isStreaming && response.body) {
+				// Handle streaming response
+				const reader = response.body.getReader();
+				const decoder = new TextDecoder();
+				
+				// Insert summary header at the end of document
+				editor.replaceRange('\n\n**Summary:**\n\n', endOfDocument, endOfDocument);
+				
+				// Update cursor position after inserting the header
+				const newLastLine = editor.lastLine();
+				const newLastLineContent = editor.getLine(newLastLine);
+				editor.setCursor({ line: newLastLine, ch: newLastLineContent.length });
+				
+				let buffer = '';
+				let chunkCount = 0;
+				let totalContent = '';
+				
+				try {
+					while (true) {
+						const { done, value } = await reader.read();
+						if (done) {
+
+							break;
+						}
+
+						chunkCount++;
+						// Decode chunk and add to buffer
+						const chunk = decoder.decode(value, { stream: true });
+						buffer += chunk;
+
+
+						// Try different line endings
+						const lines = buffer.split(/\r?\n/);
+						buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+
+						for (const line of lines) {
+							if (line.trim() === '') continue;
+
+							
+							try {
+								let jsonStr = line;
+								
+								// Handle SSE format
+								if (line.startsWith('data: ')) {
+									jsonStr = line.slice(6).trim();
+								} else if (line.startsWith('event:') || line.startsWith('id:') || line.startsWith('retry:')) {
+									// Skip other SSE fields
+									continue;
+								}
+								
+								// Skip SSE end marker
+								if (jsonStr === '[DONE]' || jsonStr === 'data: [DONE]') {
+									continue;
+								}
+								
+								// Skip empty or non-JSON lines
+								if (!jsonStr || (!jsonStr.startsWith('{') && !jsonStr.startsWith('['))) {
+									continue;
+								}
+								
+								const streamData: StreamChunk = JSON.parse(jsonStr);
+								
+								// Try different possible field names for content
+								const content = streamData.content || streamData.text || streamData.delta || streamData.chunk || streamData.message;
+								
+								if (content) {
+
+									totalContent += content;
+									
+									// Small delay to ensure UI updates
+									await new Promise(resolve => setTimeout(resolve, 10));
+									
+									// Get current position and append content
+									const lastLine = editor.lastLine();
+									const lastLineContent = editor.getLine(lastLine);
+									const appendPosition = { line: lastLine, ch: lastLineContent.length };
+
+									
+									// Append content directly
+									editor.replaceRange(content, appendPosition, appendPosition);
+									
+									// Ensure visibility
+									const newLastLine = editor.lastLine();
+									editor.setCursor({ line: newLastLine, ch: editor.getLine(newLastLine).length });
+									editor.scrollIntoView({ from: { line: newLastLine, ch: 0 }, to: { line: newLastLine, ch: 0 } }, true);
+								}
+								
+								if (streamData.done) {
+									new Notice('Text summarized successfully');
+									return;
+								}
+							} catch (parseError) {
+								// Skip malformed JSON chunks
+							}
+						}
+					}
+					
+					// Process any remaining data in buffer
+					if (buffer.trim()) {
+						try {
+							let jsonStr = buffer.trim();
+							if (jsonStr.startsWith('data: ')) {
+								jsonStr = jsonStr.slice(6).trim();
+							}
+							if (jsonStr !== '[DONE]' && jsonStr.startsWith('{')) {
+								const streamData: StreamChunk = JSON.parse(jsonStr);
+								const content = streamData.content || streamData.text || streamData.delta || streamData.chunk || streamData.message;
+								if (content) {
+									totalContent += content;
+									const lastLine = editor.lastLine();
+									const lastLineContent = editor.getLine(lastLine);
+									const appendPosition = { line: lastLine, ch: lastLineContent.length };
+									editor.replaceRange(content, appendPosition, appendPosition);
+								}
+							}
+						} catch (e) {
+							// Skip if final buffer can't be parsed
+						}
+					}
+				} catch (streamError) {
+
+					new Notice('Error during streaming: ' + streamError.message);
+				} finally {
+					reader.releaseLock();
+				}
+				
+				new Notice('Text summarized successfully');
+			} else {
+				// Handle non-streaming response
+				const result: SummarizeResponse = await response.json();
+				
+				// Append summary at the end of the document
+				editor.replaceRange(`\n\n**Summary:**\n\n ${result.summary}`, endOfDocument, endOfDocument);
+				
+				new Notice('Text summarized successfully');
+			}
 		} catch (error) {
-			console.error('Error summarizing text:', error);
+
 			new Notice('Error summarizing text. Please check your API settings.');
 		}
 	}
@@ -249,12 +416,11 @@ export default class AIPlugin extends Plugin {
 				payload: {
 					text: text,
 					maxKeywords: this.config.keywords.maxKeywords || 10,
-					temperature: this.config.keywords.temperature || 1
 				},
 				config: {
 					provider: this.config.keywords.provider,
 					model: this.config.keywords.model,
-					temperature: this.config.keywords.temperature,
+					temperature: this.config.keywords.temperature || 0.3,
 					stream: this.config.keywords.stream
 				}
 			};
@@ -264,7 +430,6 @@ export default class AIPlugin extends Plugin {
 				headers: {
 					'Content-Type': 'application/json',
 					'Origin': 'app://obsidian.md',
-
 				},
 				body: JSON.stringify(requestBody)
 			});
@@ -275,11 +440,11 @@ export default class AIPlugin extends Plugin {
 
 			const result: KeywordsResponse = await response.json();
 
-			// Append keywords after the selected text
+			// Add keywords after the selected text
 			const cursor = editor.getCursor('to');
 			editor.setCursor(cursor);
 			const keywordsList = result.keywords.map(keyword => `- ${keyword}`).join('\n');
-			editor.replaceSelection(`${text}\n\n**Keywords:**\n${keywordsList}`);
+			editor.replaceRange(`\n\n**Keywords:**\n${keywordsList}`, cursor);
 
 			new Notice('Keywords extracted successfully');
 		} catch (error) {
