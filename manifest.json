@@ -1,6 +1,6 @@
 {
   "id": "ai-backends-obsidian",
-  "name": "Ai backends",
+  "name": "AI Backends",
   "version": "1.0.0",
   "minAppVersion": "0.15.0",
   "description": "A plugin to use with aibackends.com",
