@@ -32,6 +32,13 @@ summarize:
   provider: "ollama"
   model: "gemma3:4b"
   temperature: 0.3
-  stream: false
+  stream: true
   maxLength: 500
+
+keywords:
+  provider: "lmstudio"
+  model: "gemma-3-4b-it"
+  temperature: 0.3
+  stream: false
+  maxKeywords: 5
 ```

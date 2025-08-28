@@ -40,7 +40,6 @@ interface KeywordsRequest {
 	payload: {
 		text: string;
 		maxKeywords: number;
-		temperature: number;
 	};
 	config: AIOperationConfig;
 }
@@ -54,6 +53,7 @@ interface SummarizeResponse {
 		output_tokens: number;
 		total_tokens: number;
 	};
+	apiVersion: string;
 }
 
 // Streaming response interface - supports multiple formats
@@ -81,6 +81,7 @@ interface KeywordsResponse {
 		output_tokens: number;
 		total_tokens: number;
 	};
+	apiVersion: string;
 }
 
 export default class AIPlugin extends Plugin {
@@ -411,12 +412,11 @@ export default class AIPlugin extends Plugin {
 				payload: {
 					text: text,
 					maxKeywords: this.config.keywords.maxKeywords || 10,
-					temperature: this.config.keywords.temperature || 1
 				},
 				config: {
 					provider: this.config.keywords.provider,
 					model: this.config.keywords.model,
-					temperature: this.config.keywords.temperature,
+					temperature: this.config.keywords.temperature || 0.3,
 					stream: this.config.keywords.stream
 				}
 			};
@@ -426,7 +426,6 @@ export default class AIPlugin extends Plugin {
 				headers: {
 					'Content-Type': 'application/json',
 					'Origin': 'app://obsidian.md',
-
 				},
 				body: JSON.stringify(requestBody)
 			});
@@ -437,11 +436,11 @@ export default class AIPlugin extends Plugin {
 
 			const result: KeywordsResponse = await response.json();
 
-			// Append keywords after the selected text
+			// Add keywords after the selected text
 			const cursor = editor.getCursor('to');
 			editor.setCursor(cursor);
 			const keywordsList = result.keywords.map(keyword => `- ${keyword}`).join('\n');
-			editor.replaceSelection(`${text}\n\n**Keywords:**\n${keywordsList}`);
+			editor.replaceRange(`\n\n**Keywords:**\n${keywordsList}`, cursor);
 
 			new Notice('Keywords extracted successfully');
 		} catch (error) {
