@@ -1,4 +1,5 @@
-import { App, Editor, MarkdownView, Notice, Plugin, PluginSettingTab, Setting, Menu, MenuItem } from 'obsidian';
+
+import { App, Editor, MarkdownView, Notice, Plugin, PluginSettingTab, Setting, Menu, MenuItem, TFile } from 'obsidian';
 import * as yaml from 'js-yaml';
 
 interface AIPluginSettings {
@@ -87,13 +88,15 @@ interface KeywordsResponse {
 export default class AIPlugin extends Plugin {
 	settings: AIPluginSettings;
 	config: AIConfig | null = null;
+	configWatcher: any = null; // Store reference to the file watcher
 
 	async onload() {
 		await this.loadSettings();
-		
+
 		// Delay config loading to ensure vault is ready
 		this.app.workspace.onLayoutReady(() => {
 			this.loadConfig();
+			this.setupConfigWatcher();
 		});
 
 		// Add context menu for selected text with AI Backends submenu
@@ -165,7 +168,26 @@ export default class AIPlugin extends Plugin {
 		this.addSettingTab(new AIPluginSettingTab(this.app, this));
 	}
 
+	setupConfigWatcher() {
+		// Clean up existing watcher
+		if (this.configWatcher) {
+			this.app.vault.offref(this.configWatcher);
+		}
 
+		if (!this.settings.configFilePath) {
+			new Notice('AI Backends Configuration not set');
+			return;
+		}
+
+		// Set up file watcher for config changes
+		this.configWatcher = this.app.vault.on('modify', (file: TFile) => {
+			if (file.path === this.settings.configFilePath) {
+				this.loadConfig();
+			}
+		});
+
+		console.log('Config watcher set up for:', this.settings.configFilePath);
+	}
 
 	async loadConfig() {
 		try {
@@ -197,7 +219,7 @@ export default class AIPlugin extends Plugin {
 			this.config = yaml.load(configContent) as AIConfig;
 			console.log('Config parsed:', this.config);
 
-			new Notice('Configuration loaded successfully');
+			new Notice('AI Backends Configuration loaded');
 		} catch (error) {
 			console.error('Error loading config:', error);
 			new Notice('Error loading configuration file: ' + error.message);
@@ -253,7 +275,7 @@ export default class AIPlugin extends Plugin {
 
 			// Check content type to determine if it's a streaming response
 			const contentType = response.headers.get('content-type') || '';
-			const isStreaming = this.config.summarize.stream && 
+			const isStreaming = this.config.summarize.stream &&
 				(contentType.includes('text/event-stream') || contentType.includes('application/x-ndjson') || response.body);
 
 
@@ -261,19 +283,19 @@ export default class AIPlugin extends Plugin {
 				// Handle streaming response
 				const reader = response.body.getReader();
 				const decoder = new TextDecoder();
-				
+
 				// Insert summary header at the end of document
 				editor.replaceRange('\n\n**Summary:**\n\n', endOfDocument, endOfDocument);
-				
+
 				// Update cursor position after inserting the header
 				const newLastLine = editor.lastLine();
 				const newLastLineContent = editor.getLine(newLastLine);
 				editor.setCursor({ line: newLastLine, ch: newLastLineContent.length });
-				
+
 				let buffer = '';
 				let chunkCount = 0;
 				let totalContent = '';
-				
+
 				try {
 					while (true) {
 						const { done, value } = await reader.read();
@@ -296,10 +318,10 @@ export default class AIPlugin extends Plugin {
 						for (const line of lines) {
 							if (line.trim() === '') continue;
 
-							
+
 							try {
 								let jsonStr = line;
-								
+
 								// Handle SSE format
 								if (line.startsWith('data: ')) {
 									jsonStr = line.slice(6).trim();
@@ -307,44 +329,44 @@ export default class AIPlugin extends Plugin {
 									// Skip other SSE fields
 									continue;
 								}
-								
+
 								// Skip SSE end marker
 								if (jsonStr === '[DONE]' || jsonStr === 'data: [DONE]') {
 									continue;
 								}
-								
+
 								// Skip empty or non-JSON lines
 								if (!jsonStr || (!jsonStr.startsWith('{') && !jsonStr.startsWith('['))) {
 									continue;
 								}
-								
+
 								const streamData: StreamChunk = JSON.parse(jsonStr);
-								
+
 								// Try different possible field names for content
 								const content = streamData.content || streamData.text || streamData.delta || streamData.chunk || streamData.message;
-								
+
 								if (content) {
 
 									totalContent += content;
-									
+
 									// Small delay to ensure UI updates
 									await new Promise(resolve => setTimeout(resolve, 10));
-									
+
 									// Get current position and append content
 									const lastLine = editor.lastLine();
 									const lastLineContent = editor.getLine(lastLine);
 									const appendPosition = { line: lastLine, ch: lastLineContent.length };
 
-									
+
 									// Append content directly
 									editor.replaceRange(content, appendPosition, appendPosition);
-									
+
 									// Ensure visibility
 									const newLastLine = editor.lastLine();
 									editor.setCursor({ line: newLastLine, ch: editor.getLine(newLastLine).length });
 									editor.scrollIntoView({ from: { line: newLastLine, ch: 0 }, to: { line: newLastLine, ch: 0 } }, true);
 								}
-								
+
 								if (streamData.done) {
 									new Notice('Text summarized successfully');
 									return;
@@ -354,7 +376,7 @@ export default class AIPlugin extends Plugin {
 							}
 						}
 					}
-					
+
 					// Process any remaining data in buffer
 					if (buffer.trim()) {
 						try {
@@ -383,15 +405,15 @@ export default class AIPlugin extends Plugin {
 				} finally {
 					reader.releaseLock();
 				}
-				
+
 				new Notice('Text summarized successfully');
 			} else {
 				// Handle non-streaming response
 				const result: SummarizeResponse = await response.json();
-				
+
 				// Append summary at the end of the document
 				editor.replaceRange(`\n\n**Summary:**\n\n ${result.summary}`, endOfDocument, endOfDocument);
-				
+
 				new Notice('Text summarized successfully');
 			}
 		} catch (error) {
@@ -459,11 +481,17 @@ export default class AIPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
-		await this.loadConfig(); // Reload config when settings change
+		// Reload config and reset watcher when settings change
+		await this.loadConfig();
+		this.setupConfigWatcher();
 	}
 
 	onunload() {
-		// Cleanup code here
+		// Clean up the config watcher when plugin is unloaded
+		if (this.configWatcher) {
+			this.app.vault.offref(this.configWatcher);
+			this.configWatcher = null;
+		}
 	}
 
 }
