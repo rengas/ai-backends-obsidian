@@ -6,6 +6,7 @@ This plugin integrates with aibackends.com to provide AI-powered text analysis f
 
 - **Text Summarization**: Generate concise summaries of selected text using configurable AI models
 - **Keyword Extraction**: Extract relevant keywords and topics from your content
+- **Writing Actions**: Improve description, improve writing, fix spelling & grammar, brainstorm, make shorter, change tone, and translate
 - **Multiple AI Providers**: Support for OpenAI, Anthropic, Ollama, and other providers through aibackends.com
 - **Flexible Configuration**: Use YAML configuration files to customize AI settings per operation
 - **Context Menu Integration**: Right-click on selected text for quick access to AI features
@@ -41,4 +42,19 @@ keywords:
   temperature: 0.3
   stream: false
   maxKeywords: 5
+
+translate:
+  provider: "ollama"
+  model: "gemma2:2b"
+  temperature: 0.1
+  stream: false
+  defaultTargetLanguage: "en"
+
+rewrite:
+  provider: "openai"
+  model: "gpt-4o-mini"
+  temperature: 0.3
+  stream: true
 ```
+
+The `rewrite` section is used by generic Actions like Improve writing, Fix spelling & grammar, Brainstorm, Make shorter, and tone changes.
