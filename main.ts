@@ -30,6 +30,8 @@ interface AIConfig {
 	translate: AIOperationConfig & {
 		defaultTargetLanguage: string;
 	};
+	// Generic rewrite config used by Actions like Improve writing, Make shorter, etc.
+	rewrite?: AIOperationConfig;
 }
 
 interface SummarizeRequest {
@@ -107,6 +109,25 @@ interface TranslateResponse {
 	};
 }
 
+interface RewriteRequest {
+	payload: {
+		text: string;
+		instruction: string;
+	};
+	config: AIOperationConfig;
+}
+
+interface RewriteResponse {
+	// Response payloads can vary; support several common keys
+	text?: string;
+	result?: string;
+	output?: string;
+	content?: string;
+	message?: string;
+	provider?: string;
+	model?: string;
+}
+
 export default class AIPlugin extends Plugin {
 	settings: AIPluginSettings;
 	config: AIConfig | null = null;
@@ -131,37 +152,114 @@ export default class AIPlugin extends Plugin {
 					menu.addItem((item: MenuItem) => {
 						item
 							.setTitle('AI Backends')
-							.setIcon('brain-circuit')
+							.setIcon('wand')
 							.setSection('selection');
 
-						// Create the submenu
-						const subMenu: Menu = (item as any).setSubmenu();
-						// Add items to the submenu
-						subMenu.addItem((subItem: MenuItem) => {
+						// Root submenu: Actions
+						const actionsMenu: Menu = (item as any).setSubmenu();
+
+						// Improve description
+						actionsMenu.addItem((subItem: MenuItem) => {
 							subItem
-								.setTitle('Summarize')
+								.setTitle('Improve description')
+								.setIcon('file-text')
+								.onClick(async () => {
+									await this.improveDescription(editor, selection);
+								});
+						});
+
+						// Summarise writing
+						actionsMenu.addItem((subItem: MenuItem) => {
+							subItem
+								.setTitle('Summarise writing')
 								.setIcon('document-text')
 								.onClick(async () => {
 									await this.summarizeText(editor, selection);
 								});
 						});
 
-						subMenu.addItem((subItem: MenuItem) => {
+						// Improve writing
+						actionsMenu.addItem((subItem: MenuItem) => {
 							subItem
-								.setTitle('Extract Keywords')
-								.setIcon('tag')
+								.setTitle('Improve writing')
+								.setIcon('wand')
 								.onClick(async () => {
-									await this.extractKeywords(editor, selection);
+									await this.improveWriting(editor, selection);
 								});
 						});
 
-						subMenu.addItem((subItem: MenuItem) => {
+						// Fix spelling & grammar
+						actionsMenu.addItem((subItem: MenuItem) => {
 							subItem
-								.setTitle('Translate')
-								.setIcon('languages')
+								.setTitle('Fix spelling & grammar')
+								.setIcon('check')
 								.onClick(async () => {
-									await this.translateText(editor, selection);
+									await this.fixSpellingGrammar(editor, selection);
 								});
+						});
+
+						// Brainstorm
+						actionsMenu.addItem((subItem: MenuItem) => {
+							subItem
+								.setTitle('Brainstorm')
+								.setIcon('lightbulb')
+								.onClick(async () => {
+									await this.brainstorm(editor, selection);
+								});
+						});
+
+						// Make shorter
+						actionsMenu.addItem((subItem: MenuItem) => {
+							subItem
+								.setTitle('Make shorter')
+								.setIcon('minus')
+								.onClick(async () => {
+									await this.makeShorter(editor, selection);
+								});
+						});
+
+						// Change tone to ... (submenu)
+						actionsMenu.addItem((toneItem: MenuItem) => {
+							toneItem.setTitle('Change tone to ...').setIcon('mic');
+							const toneMenu: Menu = (toneItem as any).setSubmenu();
+							const tones = [
+								'Friendly', 'Formal', 'Casual', 'Professional', 'Confident', 'Empathetic', 'Persuasive', 'Playful', 'Direct'
+							];
+							tones.forEach((tone) => {
+								toneMenu.addItem((tItem: MenuItem) => {
+									tItem.setTitle(tone).onClick(async () => {
+										await this.changeTone(editor, selection, tone);
+									});
+								});
+							});
+						});
+
+						// Translate to ... (submenu)
+						actionsMenu.addItem((tItem: MenuItem) => {
+							tItem.setTitle('Translate to ...').setIcon('languages');
+							const langMenu: Menu = (tItem as any).setSubmenu();
+							const languages: { label: string; code: string }[] = [
+								{ label: 'English', code: 'en' },
+								{ label: 'Spanish', code: 'es' },
+								{ label: 'French', code: 'fr' },
+								{ label: 'German', code: 'de' },
+								{ label: 'Italian', code: 'it' },
+								{ label: 'Portuguese', code: 'pt' },
+								{ label: 'Chinese (Simplified)', code: 'zh' },
+								{ label: 'Japanese', code: 'ja' },
+								{ label: 'Korean', code: 'ko' },
+								{ label: 'Hindi', code: 'hi' },
+								{ label: 'Arabic', code: 'ar' },
+								{ label: 'Dutch', code: 'nl' },
+								{ label: 'Russian', code: 'ru' }
+							];
+							languages.forEach(({ label, code }) => {
+								langMenu.addItem((lItem: MenuItem) => {
+									lItem.setTitle(label).onClick(async () => {
+										await this.translateText(editor, selection, code);
+									});
+								});
+							});
 						});
 					});
 				}
@@ -207,6 +305,120 @@ export default class AIPlugin extends Plugin {
 				}
 			}
 		});
+
+		// New: Command palette entries for Actions
+		this.addCommand({
+			id: 'improve-description-selection',
+			name: 'Improve description of selected text',
+			editorCallback: async (editor: Editor) => {
+				const selection = editor.getSelection();
+				if (selection.length > 0) {
+					await this.improveDescription(editor, selection);
+				} else {
+					new Notice('Please select some text to improve');
+				}
+			}
+		});
+
+		this.addCommand({
+			id: 'improve-writing-selection',
+			name: 'Improve writing of selected text',
+			editorCallback: async (editor: Editor) => {
+				const selection = editor.getSelection();
+				if (selection.length > 0) {
+					await this.improveWriting(editor, selection);
+				} else {
+					new Notice('Please select some text to improve');
+				}
+			}
+		});
+
+		this.addCommand({
+			id: 'fix-spelling-grammar-selection',
+			name: 'Fix spelling & grammar of selection',
+			editorCallback: async (editor: Editor) => {
+				const selection = editor.getSelection();
+				if (selection.length > 0) {
+					await this.fixSpellingGrammar(editor, selection);
+				} else {
+					new Notice('Please select some text to correct');
+				}
+			}
+		});
+
+		this.addCommand({
+			id: 'brainstorm-selection',
+			name: 'Brainstorm ideas from selection',
+			editorCallback: async (editor: Editor) => {
+				const selection = editor.getSelection();
+				if (selection.length > 0) {
+					await this.brainstorm(editor, selection);
+				} else {
+					new Notice('Please select some text to brainstorm on');
+				}
+			}
+		});
+
+		this.addCommand({
+			id: 'make-shorter-selection',
+			name: 'Make selected text shorter',
+			editorCallback: async (editor: Editor) => {
+				const selection = editor.getSelection();
+				if (selection.length > 0) {
+					await this.makeShorter(editor, selection);
+				} else {
+					new Notice('Please select some text to shorten');
+				}
+			}
+		});
+
+		// Tone change shortcuts
+		const tones = ['Friendly','Formal','Casual','Professional','Confident','Empathetic','Persuasive','Playful','Direct'];
+		for (const tone of tones) {
+			this.addCommand({
+				id: `change-tone-${tone.toLowerCase()}-selection`,
+				name: `Change tone to ${tone}`,
+				editorCallback: async (editor: Editor) => {
+					const selection = editor.getSelection();
+					if (selection.length > 0) {
+						await this.changeTone(editor, selection, tone);
+					} else {
+						new Notice('Please select some text to change tone');
+					}
+				}
+			});
+		}
+
+		// Translate presets
+		const languages: { label: string; code: string }[] = [
+			{ label: 'English', code: 'en' },
+			{ label: 'Spanish', code: 'es' },
+			{ label: 'French', code: 'fr' },
+			{ label: 'German', code: 'de' },
+			{ label: 'Italian', code: 'it' },
+			{ label: 'Portuguese', code: 'pt' },
+			{ label: 'Chinese (Simplified)', code: 'zh' },
+			{ label: 'Japanese', code: 'ja' },
+			{ label: 'Korean', code: 'ko' },
+			{ label: 'Hindi', code: 'hi' },
+			{ label: 'Arabic', code: 'ar' },
+			{ label: 'Dutch', code: 'nl' },
+			{ label: 'Russian', code: 'ru' },
+		];
+		for (const { label, code } of languages) {
+			this.addCommand({
+				id: `translate-selection-to-${code}`,
+				name: `Translate selection to ${label}`,
+				editorCallback: async (editor: Editor) => {
+					const selection = editor.getSelection();
+					if (selection.length > 0) {
+						await this.translateText(editor, selection, code);
+					} else {
+						new Notice('Please select some text to translate');
+					}
+				}
+			});
+		}
 
 		// Add settings tab
 		this.addSettingTab(new AIPluginSettingTab(this.app, this));
@@ -480,6 +692,105 @@ export default class AIPlugin extends Plugin {
 		}
 	}
 
+	// Generic rewrite helper used by most actions
+	async rewriteText(editor: Editor, text: string, instruction: string, headerLabel: string) {
+		if (!this.config || !this.config.rewrite) {
+			new Notice('Please configure the rewrite settings in the YAML file first');
+			return;
+		}
+
+		if (!this.settings.apiUrl) {
+			new Notice('Please set the API URL in settings');
+			return;
+		}
+
+		try {
+			const requestBody: RewriteRequest = {
+				payload: {
+					text,
+					instruction
+				},
+				config: {
+					provider: this.config.rewrite.provider,
+					model: this.config.rewrite.model,
+					temperature: this.config.rewrite.temperature,
+					stream: this.config.rewrite.stream
+				}
+			};
+
+			const response = await fetch(`${this.settings.apiUrl}/api/v1/rewrite`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Origin': 'app://obsidian.md',
+					'Accept': this.config.rewrite.stream ? 'text/event-stream, application/x-ndjson, application/json' : 'application/json'
+				},
+				body: JSON.stringify(requestBody)
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+			}
+
+			const contentType = response.headers.get('content-type') || '';
+			const isStreaming = this.config.rewrite.stream &&
+				(contentType.includes('text/event-stream') || contentType.includes('application/x-ndjson') || response.body);
+
+			if (isStreaming && response.body) {
+				await this.handleStreamingResponse(
+					response,
+					editor,
+					`\n\n**${headerLabel}:**\n\n`,
+					'Action applied successfully'
+				);
+			} else {
+				const result: RewriteResponse = await response.json();
+				const output = result.text || result.result || result.output || result.content || result.message || '';
+
+				const lastLine = editor.lastLine();
+				const lastLineContent = editor.getLine(lastLine);
+				const endOfDocument = { line: lastLine, ch: lastLineContent.length };
+				editor.replaceRange(`\n\n**${headerLabel}:**\n\n${output}`, endOfDocument, endOfDocument);
+
+				new Notice('Action applied successfully');
+			}
+		} catch (error) {
+			console.error('Error applying rewrite:', error);
+			new Notice('Error applying action. Please check your API settings.');
+		}
+	}
+
+	async improveDescription(editor: Editor, text: string) {
+		const instruction = 'Improve the following description for clarity, concision, and impact while keeping the facts and meaning. Return only the improved description.';
+		await this.rewriteText(editor, text, instruction, 'Improved description');
+	}
+
+	async improveWriting(editor: Editor, text: string) {
+		const instruction = 'Rewrite the text to improve clarity, grammar, and flow, preserving meaning and voice. Return only the rewritten text.';
+		await this.rewriteText(editor, text, instruction, 'Improved writing');
+	}
+
+	async fixSpellingGrammar(editor: Editor, text: string) {
+		const instruction = 'Fix spelling, grammar, and punctuation without changing meaning or tone. Return only the corrected text.';
+		await this.rewriteText(editor, text, instruction, 'Fixed spelling & grammar');
+	}
+
+	async brainstorm(editor: Editor, text: string) {
+		const instruction = 'Brainstorm 6-10 concise ideas based on the text. Use a bulleted list, each idea on its own line.';
+		await this.rewriteText(editor, text, instruction, 'Brainstorm');
+	}
+
+	async makeShorter(editor: Editor, text: string) {
+		const instruction = 'Rewrite the text to be significantly shorter (around 30-50% reduction) while preserving key points and tone. Return only the shortened version.';
+		await this.rewriteText(editor, text, instruction, 'Shorter version');
+	}
+
+	async changeTone(editor: Editor, text: string, tone: string) {
+		const instruction = `Rewrite the text in a ${tone.toLowerCase()} tone while preserving meaning and intent. Return only the rewritten text.`;
+		await this.rewriteText(editor, text, instruction, `Changed tone (${tone})`);
+	}
+
 	async translateText(editor: Editor, text: string, customTargetLanguage?: string) {
 		if (!this.config || !this.config.translate) {
 			new Notice('Please configure the translate settings in the YAML file first');
@@ -678,7 +989,7 @@ class AIPluginSettingTab extends PluginSettingTab {
 				}));
 
 		containerEl.createEl('h3', {text: 'Configuration File Format'});
-		containerEl.createEl('p', {text: 'Create a YAML file at the specified path with separate configurations for summarize, keywords, and translate:'});
+		containerEl.createEl('p', {text: 'Create a YAML file at the specified path with separate configurations for summarize, keywords, translate, and rewrite (generic actions):'});
 
 		const codeBlock = containerEl.createEl('pre');
 		codeBlock.createEl('code', {text: `summarize:
@@ -700,7 +1011,14 @@ translate:
   model: "gemma2:2b"
   temperature: 0.1
   stream: false
-  defaultTargetLanguage: "en"`});
+  defaultTargetLanguage: "en"
+  
+ rewrite:
+  provider: "openai"
+  model: "gpt-4o-mini"
+  temperature: 0.3
+  stream: true
+ `});
 
 		containerEl.createEl('h4', {text: 'Configuration Options:'});
 		const optionsList = containerEl.createEl('ul');
@@ -711,5 +1029,6 @@ translate:
 		optionsList.createEl('li', {text: 'maxLength: Maximum length for summaries'});
 		optionsList.createEl('li', {text: 'maxKeywords: Maximum number of keywords to extract'});
 		optionsList.createEl('li', {text: 'defaultTargetLanguage: Default target language for translations (e.g., "en", "es", "fr")'});
+		optionsList.createEl('li', {text: 'rewrite: Generic config used by Actions such as Improve writing, Brainstorm, Make shorter, and tone changes'});
 	}
 }
