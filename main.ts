@@ -27,6 +27,9 @@ interface AIConfig {
 		maxKeywords: number;
 		temperature: number; // Override for keywords payload
 	};
+	translate: AIOperationConfig & {
+		defaultTargetLanguage: string;
+	};
 }
 
 interface SummarizeRequest {
@@ -41,6 +44,14 @@ interface KeywordsRequest {
 	payload: {
 		text: string;
 		maxKeywords: number;
+	};
+	config: AIOperationConfig;
+}
+
+interface TranslateRequest {
+	payload: {
+		text: string;
+		targetLanguage: string;
 	};
 	config: AIOperationConfig;
 }
@@ -83,6 +94,17 @@ interface KeywordsResponse {
 		total_tokens: number;
 	};
 	apiVersion: string;
+}
+
+interface TranslateResponse {
+	translation: string;
+	provider: string;
+	model: string;
+	usage: {
+		input_tokens: number;
+		output_tokens: number;
+		total_tokens: number;
+	};
 }
 
 export default class AIPlugin extends Plugin {
@@ -132,6 +154,15 @@ export default class AIPlugin extends Plugin {
 									await this.extractKeywords(editor, selection);
 								});
 						});
+
+						subMenu.addItem((subItem: MenuItem) => {
+							subItem
+								.setTitle('Translate')
+								.setIcon('languages')
+								.onClick(async () => {
+									await this.translateText(editor, selection);
+								});
+						});
 					});
 				}
 			})
@@ -160,6 +191,19 @@ export default class AIPlugin extends Plugin {
 					await this.extractKeywords(editor, selection);
 				} else {
 					new Notice('Please select some text to extract keywords from');
+				}
+			}
+		});
+
+		this.addCommand({
+			id: 'translate-selection',
+			name: 'Translate selected text',
+			editorCallback: async (editor: Editor, view: MarkdownView) => {
+				const selection = editor.getSelection();
+				if (selection.length > 0) {
+					await this.translateText(editor, selection);
+				} else {
+					new Notice('Please select some text to translate');
 				}
 			}
 		});
@@ -226,6 +270,137 @@ export default class AIPlugin extends Plugin {
 		}
 	}
 
+	async handleStreamingResponse(
+		response: Response, 
+		editor: Editor, 
+		headerText: string, 
+		successMessage: string
+	): Promise<void> {
+		const reader = response.body!.getReader();
+		const decoder = new TextDecoder();
+
+		// Always append to the end of the document
+		const lastLine = editor.lastLine();
+		const lastLineContent = editor.getLine(lastLine);
+		const endOfDocument = { line: lastLine, ch: lastLineContent.length };
+		editor.setCursor(endOfDocument);
+
+		// Insert header at the end of document
+		editor.replaceRange(headerText, endOfDocument, endOfDocument);
+
+		// Update cursor position after inserting the header
+		const newLastLine = editor.lastLine();
+		const newLastLineContent = editor.getLine(newLastLine);
+		editor.setCursor({ line: newLastLine, ch: newLastLineContent.length });
+
+		let buffer = '';
+		let totalContent = '';
+
+		try {
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) {
+					break;
+				}
+
+				// Decode chunk and add to buffer
+				const chunk = decoder.decode(value, { stream: true });
+				buffer += chunk;
+
+				// Try different line endings
+				const lines = buffer.split(/\r?\n/);
+				buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+				for (const line of lines) {
+					if (line.trim() === '') continue;
+
+					try {
+						let jsonStr = line;
+
+						// Handle SSE format
+						if (line.startsWith('data: ')) {
+							jsonStr = line.slice(6).trim();
+						} else if (line.startsWith('event:') || line.startsWith('id:') || line.startsWith('retry:')) {
+							// Skip other SSE fields
+							continue;
+						}
+
+						// Skip SSE end marker
+						if (jsonStr === '[DONE]' || jsonStr === 'data: [DONE]') {
+							continue;
+						}
+
+						// Skip empty or non-JSON lines
+						if (!jsonStr || (!jsonStr.startsWith('{') && !jsonStr.startsWith('['))) {
+							continue;
+						}
+
+						const streamData: StreamChunk = JSON.parse(jsonStr);
+
+						// Try different possible field names for content
+						const content = streamData.content || streamData.text || streamData.delta || streamData.chunk || streamData.message;
+
+						if (content) {
+							totalContent += content;
+
+							// Small delay to ensure UI updates
+							await new Promise(resolve => setTimeout(resolve, 10));
+
+							// Get current position and append content
+							const lastLine = editor.lastLine();
+							const lastLineContent = editor.getLine(lastLine);
+							const appendPosition = { line: lastLine, ch: lastLineContent.length };
+
+							// Append content directly
+							editor.replaceRange(content, appendPosition, appendPosition);
+
+							// Ensure visibility
+							const newLastLine = editor.lastLine();
+							editor.setCursor({ line: newLastLine, ch: editor.getLine(newLastLine).length });
+							editor.scrollIntoView({ from: { line: newLastLine, ch: 0 }, to: { line: newLastLine, ch: 0 } }, true);
+						}
+
+						if (streamData.done) {
+							new Notice(successMessage);
+							return;
+						}
+					} catch (parseError) {
+						// Skip malformed JSON chunks
+					}
+				}
+			}
+
+			// Process any remaining data in buffer
+			if (buffer.trim()) {
+				try {
+					let jsonStr = buffer.trim();
+					if (jsonStr.startsWith('data: ')) {
+						jsonStr = jsonStr.slice(6).trim();
+					}
+					if (jsonStr !== '[DONE]' && jsonStr.startsWith('{')) {
+						const streamData: StreamChunk = JSON.parse(jsonStr);
+						const content = streamData.content || streamData.text || streamData.delta || streamData.chunk || streamData.message;
+						if (content) {
+							totalContent += content;
+							const lastLine = editor.lastLine();
+							const lastLineContent = editor.getLine(lastLine);
+							const appendPosition = { line: lastLine, ch: lastLineContent.length };
+							editor.replaceRange(content, appendPosition, appendPosition);
+						}
+					}
+				} catch (e) {
+					// Skip if final buffer can't be parsed
+				}
+			}
+		} catch (streamError) {
+			new Notice('Error during streaming: ' + streamError.message);
+		} finally {
+			reader.releaseLock();
+		}
+
+		new Notice(successMessage);
+	}
+
 	async summarizeText(editor: Editor, text: string) {
 		if (!this.config || !this.config.summarize) {
 			new Notice('Please configure the summarize settings in the YAML file first');
@@ -278,138 +453,21 @@ export default class AIPlugin extends Plugin {
 			const isStreaming = this.config.summarize.stream &&
 				(contentType.includes('text/event-stream') || contentType.includes('application/x-ndjson') || response.body);
 
-
 			if (isStreaming && response.body) {
-				// Handle streaming response
-				const reader = response.body.getReader();
-				const decoder = new TextDecoder();
-
-				// Insert summary header at the end of document
-				editor.replaceRange('\n\n**Summary:**\n\n', endOfDocument, endOfDocument);
-
-				// Update cursor position after inserting the header
-				const newLastLine = editor.lastLine();
-				const newLastLineContent = editor.getLine(newLastLine);
-				editor.setCursor({ line: newLastLine, ch: newLastLineContent.length });
-
-				let buffer = '';
-				let chunkCount = 0;
-				let totalContent = '';
-
-				try {
-					while (true) {
-						const { done, value } = await reader.read();
-						if (done) {
-
-							break;
-						}
-
-						chunkCount++;
-						// Decode chunk and add to buffer
-						const chunk = decoder.decode(value, { stream: true });
-						buffer += chunk;
-
-
-						// Try different line endings
-						const lines = buffer.split(/\r?\n/);
-						buffer = lines.pop() || ''; // Keep incomplete line in buffer
-
-
-						for (const line of lines) {
-							if (line.trim() === '') continue;
-
-
-							try {
-								let jsonStr = line;
-
-								// Handle SSE format
-								if (line.startsWith('data: ')) {
-									jsonStr = line.slice(6).trim();
-								} else if (line.startsWith('event:') || line.startsWith('id:') || line.startsWith('retry:')) {
-									// Skip other SSE fields
-									continue;
-								}
-
-								// Skip SSE end marker
-								if (jsonStr === '[DONE]' || jsonStr === 'data: [DONE]') {
-									continue;
-								}
-
-								// Skip empty or non-JSON lines
-								if (!jsonStr || (!jsonStr.startsWith('{') && !jsonStr.startsWith('['))) {
-									continue;
-								}
-
-								const streamData: StreamChunk = JSON.parse(jsonStr);
-
-								// Try different possible field names for content
-								const content = streamData.content || streamData.text || streamData.delta || streamData.chunk || streamData.message;
-
-								if (content) {
-
-									totalContent += content;
-
-									// Small delay to ensure UI updates
-									await new Promise(resolve => setTimeout(resolve, 10));
-
-									// Get current position and append content
-									const lastLine = editor.lastLine();
-									const lastLineContent = editor.getLine(lastLine);
-									const appendPosition = { line: lastLine, ch: lastLineContent.length };
-
-
-									// Append content directly
-									editor.replaceRange(content, appendPosition, appendPosition);
-
-									// Ensure visibility
-									const newLastLine = editor.lastLine();
-									editor.setCursor({ line: newLastLine, ch: editor.getLine(newLastLine).length });
-									editor.scrollIntoView({ from: { line: newLastLine, ch: 0 }, to: { line: newLastLine, ch: 0 } }, true);
-								}
-
-								if (streamData.done) {
-									new Notice('Text summarized successfully');
-									return;
-								}
-							} catch (parseError) {
-								// Skip malformed JSON chunks
-							}
-						}
-					}
-
-					// Process any remaining data in buffer
-					if (buffer.trim()) {
-						try {
-							let jsonStr = buffer.trim();
-							if (jsonStr.startsWith('data: ')) {
-								jsonStr = jsonStr.slice(6).trim();
-							}
-							if (jsonStr !== '[DONE]' && jsonStr.startsWith('{')) {
-								const streamData: StreamChunk = JSON.parse(jsonStr);
-								const content = streamData.content || streamData.text || streamData.delta || streamData.chunk || streamData.message;
-								if (content) {
-									totalContent += content;
-									const lastLine = editor.lastLine();
-									const lastLineContent = editor.getLine(lastLine);
-									const appendPosition = { line: lastLine, ch: lastLineContent.length };
-									editor.replaceRange(content, appendPosition, appendPosition);
-								}
-							}
-						} catch (e) {
-							// Skip if final buffer can't be parsed
-						}
-					}
-				} catch (streamError) {
-
-					new Notice('Error during streaming: ' + streamError.message);
-				} finally {
-					reader.releaseLock();
-				}
-
-				new Notice('Text summarized successfully');
+				await this.handleStreamingResponse(
+					response, 
+					editor, 
+					'\n\n**Summary:**\n\n', 
+					'Text summarized successfully'
+				);
 			} else {
 				// Handle non-streaming response
 				const result: SummarizeResponse = await response.json();
+
+				// Always append to the end of the document
+				const lastLine = editor.lastLine();
+				const lastLineContent = editor.getLine(lastLine);
+				const endOfDocument = { line: lastLine, ch: lastLineContent.length };
 
 				// Append summary at the end of the document
 				editor.replaceRange(`\n\n**Summary:**\n\n ${result.summary}`, endOfDocument, endOfDocument);
@@ -419,6 +477,92 @@ export default class AIPlugin extends Plugin {
 		} catch (error) {
 
 			new Notice('Error summarizing text. Please check your API settings.');
+		}
+	}
+
+	async translateText(editor: Editor, text: string, customTargetLanguage?: string) {
+		if (!this.config || !this.config.translate) {
+			new Notice('Please configure the translate settings in the YAML file first');
+			return;
+		}
+
+		if (!this.settings.apiUrl) {
+			new Notice('Please set the API URL in settings');
+			return;
+		}
+
+		// If no custom target language is provided, use default from config
+		const targetLanguage = customTargetLanguage || this.config.translate.defaultTargetLanguage;
+
+		if (!targetLanguage) {
+			new Notice('Please specify a target language in the config file or provide one');
+			return;
+		}
+
+		try {
+			const requestBody: TranslateRequest = {
+				payload: {
+					text: text,
+					targetLanguage: targetLanguage
+				},
+				config: {
+					provider: this.config.translate.provider,
+					model: this.config.translate.model,
+					temperature: this.config.translate.temperature,
+					stream: this.config.translate.stream
+				}
+			};
+
+			const response = await fetch(`${this.settings.apiUrl}/api/v1/translate`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Origin': 'app://obsidian.md',
+					'Accept': this.config.translate.stream ? 'text/event-stream, application/x-ndjson, application/json' : 'application/json'
+				},
+				body: JSON.stringify(requestBody)
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+			}
+
+			// Always append to the end of the document
+			const lastLine = editor.lastLine();
+			const lastLineContent = editor.getLine(lastLine);
+			const endOfDocument = { line: lastLine, ch: lastLineContent.length };
+			editor.setCursor(endOfDocument);
+
+			// Check content type to determine if it's a streaming response
+			const contentType = response.headers.get('content-type') || '';
+			const isStreaming = this.config.translate.stream &&
+				(contentType.includes('text/event-stream') || contentType.includes('application/x-ndjson') || response.body);
+
+			if (isStreaming && response.body) {
+				await this.handleStreamingResponse(
+					response, 
+					editor, 
+					`\n\n**Translation (${targetLanguage}):**\n\n`, 
+					'Text translated successfully'
+				);
+			} else {
+				// Handle non-streaming response
+				const result: TranslateResponse = await response.json();
+
+				// Always append to the end of the document
+				const lastLine = editor.lastLine();
+				const lastLineContent = editor.getLine(lastLine);
+				const endOfDocument = { line: lastLine, ch: lastLineContent.length };
+
+				// Append translation at the end of the document
+				editor.replaceRange(`\n\n**Translation (${targetLanguage}):**\n\n${result.translation}`, endOfDocument, endOfDocument);
+
+				new Notice('Text translated successfully');
+			}
+		} catch (error) {
+			console.error('Error translating text:', error);
+			new Notice('Error translating text. Please check your API settings.');
 		}
 	}
 
@@ -534,7 +678,7 @@ class AIPluginSettingTab extends PluginSettingTab {
 				}));
 
 		containerEl.createEl('h3', {text: 'Configuration File Format'});
-		containerEl.createEl('p', {text: 'Create a YAML file at the specified path with separate configurations for summarize and keywords:'});
+		containerEl.createEl('p', {text: 'Create a YAML file at the specified path with separate configurations for summarize, keywords, and translate:'});
 
 		const codeBlock = containerEl.createEl('pre');
 		codeBlock.createEl('code', {text: `summarize:
@@ -549,7 +693,14 @@ keywords:
   model: "gpt-3.5-turbo"
   temperature: 0.8
   stream: false
-  maxKeywords: 10`});
+  maxKeywords: 10
+
+translate:
+  provider: "ollama"
+  model: "gemma2:2b"
+  temperature: 0.1
+  stream: false
+  defaultTargetLanguage: "en"`});
 
 		containerEl.createEl('h4', {text: 'Configuration Options:'});
 		const optionsList = containerEl.createEl('ul');
@@ -559,5 +710,6 @@ keywords:
 		optionsList.createEl('li', {text: 'stream: Whether to use streaming responses'});
 		optionsList.createEl('li', {text: 'maxLength: Maximum length for summaries'});
 		optionsList.createEl('li', {text: 'maxKeywords: Maximum number of keywords to extract'});
+		optionsList.createEl('li', {text: 'defaultTargetLanguage: Default target language for translations (e.g., "en", "es", "fr")'});
 	}
 }

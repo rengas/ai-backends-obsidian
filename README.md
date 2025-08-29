@@ -41,4 +41,11 @@ keywords:
   temperature: 0.3
   stream: false
   maxKeywords: 5
+
+translate:
+  provider: "ollama"
+  model: "gemma2:2b"
+  temperature: 0.1
+  stream: false
+  defaultTargetLanguage: "en"
 ```
