@@ -162,7 +162,7 @@ export class CommandsManager {
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
 				const selection = editor.getSelection();
 				if (selection.length > 0) {
-					await this.rewriterOperation.changeTone(editor, selection, tone);
+					await this.rewriterOperation.changeTone(editor, selection, tone, this.settings);
 				} else {
 					new Notice('Please select some text to translate');
 				}
