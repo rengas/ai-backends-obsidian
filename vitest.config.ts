@@ -7,4 +7,11 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     exclude: ['node_modules', 'dist', 'build', 'main.js'],
   },
+  resolve: {
+    alias: {
+      // Mock obsidian package
+      'obsidian': new URL('./mocks/obsidian.ts', import.meta.url).pathname,
+    },
+  },
+
 })
