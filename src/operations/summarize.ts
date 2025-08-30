@@ -1,0 +1,73 @@
+import { Editor, Notice } from 'obsidian';
+import { AIService } from '../services/ai-service';
+import { StreamingService } from '../services/streaming-service';
+import { ConfigService } from '../services/config-service';
+import { AIPluginSettings } from '../types/config';
+import { SummarizeRequest } from '../types/requests';
+import { SummarizeResponse } from '../types/responses';
+import { appendToEndOfDocument } from '../utils/editor-utils';
+
+export class SummarizeOperation {
+	private aiService: AIService;
+	private streamingService: StreamingService;
+	private configService: ConfigService;
+
+	constructor(aiService: AIService, streamingService: StreamingService, configService: ConfigService) {
+		this.aiService = aiService;
+		this.streamingService = streamingService;
+		this.configService = configService;
+	}
+
+	async execute(editor: Editor, text: string, settings: AIPluginSettings): Promise<void> {
+		const config = this.configService.getConfig();
+
+		if (!config || !config.summarize) {
+			new Notice('Please configure the summarize settings in the YAML file first');
+			return;
+		}
+
+		if (!settings.apiUrl) {
+			new Notice('Please set the API URL in settings');
+			return;
+		}
+
+		try {
+			const requestBody: SummarizeRequest = {
+				payload: {
+					text: text,
+					maxLength: config.summarize.maxLength || 200
+				},
+				config: {
+					provider: config.summarize.provider,
+					model: config.summarize.model,
+					temperature: config.summarize.temperature,
+					stream: config.summarize.stream
+				}
+			};
+
+			const response = await this.aiService.summarize(requestBody);
+
+			// Check content type to determine if it's a streaming response
+			const contentType = response.headers.get('content-type') || '';
+			const isStreaming = config.summarize.stream &&
+				(contentType.includes('text/event-stream') || contentType.includes('application/x-ndjson') || response.body);
+
+			if (isStreaming && response.body) {
+				await this.streamingService.handleStreamingResponse(
+					response, 
+					editor, 
+					'\n\n**Summary:**\n\n', 
+					'Text summarized successfully'
+				);
+			} else {
+				// Handle non-streaming response
+				const result: SummarizeResponse = await response.json();
+				appendToEndOfDocument(editor, `\n\n**Summary:**\n\n ${result.summary}`);
+				new Notice('Text summarized successfully');
+			}
+		} catch (error) {
+			console.error('Error summarizing text:', error);
+			new Notice('Error summarizing text. Please check your API settings.');
+		}
+	}
+}

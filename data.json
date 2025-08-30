@@ -1,5 +1,5 @@
 {
   "apiUrl": "http://localhost:3000",
-  "configFilePath": "ai-config/config.yaml",
+  "configFilePath": "ai-backends/config.md",
   "configFolderPath": "ai-backends/config.yaml"
 }
