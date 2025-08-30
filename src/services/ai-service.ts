@@ -30,7 +30,9 @@ export class AIService {
 	}
 
 	private async makeRequest(endpoint: string, requestBody: any, isStreaming: boolean): Promise<Response> {
-		const response = await fetch(`${this.settings.apiUrl}${endpoint}`, {
+		const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
+
+		const response = await fetch(`${this.settings.apiUrl}${normalizedEndpoint}`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
