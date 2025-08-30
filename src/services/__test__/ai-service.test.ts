@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { AIService } from '../../src/services/ai-service';
+import { AIService } from '../ai-service';
 
 // Mock fetch globally
 global.fetch = vi.fn() as any;

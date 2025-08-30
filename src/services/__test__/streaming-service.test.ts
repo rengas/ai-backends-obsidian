@@ -8,14 +8,14 @@ vi.mock('obsidian', () => ({
 }));
 
 // Mock editor utils
-vi.mock('../../src/utils/editor-utils', () => ({
+vi.mock('../../utils/editor-utils', () => ({
     appendToEndOfDocument: vi.fn()
 }));
 
 // Import after mocks are set up
-import { StreamingService } from '../../src/services/streaming-service';
+import { StreamingService } from '../streaming-service';
 import { Editor, Notice } from 'obsidian';
-import { appendToEndOfDocument } from '../../src/utils/editor-utils';
+import { appendToEndOfDocument } from '../../utils/editor-utils';
 
 describe('StreamingService', () => {
     let streamingService: StreamingService;
