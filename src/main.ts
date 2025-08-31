@@ -8,7 +8,6 @@ import { TranslateOperation } from './operations/translate';
 import { KeywordsOperation } from './operations/keywords';
 import { RewriteOperation } from './operations/rewrite';
 import { ComposeOperation } from './operations/compose';
-import { ContextMenuManager } from './ui/context-menu';
 import { CommandsManager } from './ui/commands';
 import { AIPluginSettingTab } from './ui/settings-tab';
 import { ComposePromptModal } from './ui/compose-modal';
@@ -24,14 +23,12 @@ export class AIPlugin extends Plugin {
 	private keywordsOperation: KeywordsOperation;
 	private rewriterOperation: RewriteOperation;
 	private composeOperation: ComposeOperation;
-	private contextMenuManager: ContextMenuManager;
 	private commandsManager: CommandsManager;
 	private aiContextMenu: AIContextMenu;
 
 	async onload() {
 		await this.loadSettings();
 		this.initializeServices();
-		this.setupEventHandlers();
 		this.registerCommands();
 		this.addSettingTab(new AIPluginSettingTab(this.app, this));
 
@@ -70,16 +67,6 @@ export class AIPlugin extends Plugin {
 		);
 		this.composeOperation = new ComposeOperation(this.app);
 
-		// Initialize UI components
-		this.contextMenuManager = new ContextMenuManager(
-			this.app,
-			this.summarizeOperation,
-			this.translateOperation,
-			this.keywordsOperation,
-			this.rewriterOperation,
-			this.composeOperation,
-			this.settings
-		);
 		this.commandsManager = new CommandsManager(
 			this.summarizeOperation,
 			this.translateOperation,
@@ -95,15 +82,6 @@ export class AIPlugin extends Plugin {
 			this.rewriterOperation,
 			this.composeOperation,
 			this.settings
-		);
-	}
-
-	private setupEventHandlers(): void {
-		// Add context menu for selected text with AI Backends submenu
-		this.registerEvent(
-			this.app.workspace.on('editor-menu', (menu: Menu, editor: Editor, view: MarkdownView) => {
-				this.contextMenuManager.setupContextMenu(menu, editor, view);
-			})
 		);
 	}
 
@@ -150,7 +128,6 @@ export class AIPlugin extends Plugin {
 		// Update services with new settings
 		this.configService.updateSettings(this.settings);
 		this.aiService.updateSettings(this.settings);
-		this.contextMenuManager.updateSettings(this.settings);
 		this.commandsManager.updateSettings(this.settings);
 		this.aiContextMenu.updateSettings(this.settings);
 
