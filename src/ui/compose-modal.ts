@@ -10,73 +10,81 @@ export class ComposePromptModal extends Modal {
     private composeOperation: ComposeOperation;
     private promptInput: TextAreaComponent;
     private submitButton: ButtonComponent;
+    private initialValue: string;
 
     constructor(
-        app: App, 
-        editor: Editor, 
-        selectedText: string, 
+        app: App,
+        editor: Editor,
+        selectedText: string,
         settings: AIPluginSettings,
-        composeOperation: ComposeOperation
+        composeOperation: ComposeOperation,
+        initialValue: string = ''
     ) {
         super(app);
         this.editor = editor;
         this.selectedText = selectedText;
         this.settings = settings;
         this.composeOperation = composeOperation;
+        this.initialValue = initialValue;
     }
 
     onOpen() {
         const { contentEl } = this;
         contentEl.empty();
 
-        contentEl.createEl('h3', { text: 'Compose with AI' });
+        // Create text area directly without Setting wrapper
+        const textArea = contentEl.createEl('textarea', {
+            placeholder: 'Enter your AI prompt here...'
+        });
+        textArea.value = this.initialValue;
+        textArea.style.cssText = `
+            width: 100%;
+            height: 200px;
+            min-height: 200px;
+            resize: vertical;
+            padding: 12px;
+            border: 1px solid var(--background-modifier-border);
+            border-radius: 6px;
+            background: var(--background-primary);
+            color: var(--text-normal);
+            font-family: var(--font-text);
+            font-size: 14px;
+            line-height: 1.5;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+        `;
 
-        // Show selected text context
-        if (this.selectedText) {
-            const contextContainer = contentEl.createDiv('compose-context');
-            contextContainer.createEl('h4', { text: 'Selected text:' });
-            const contextEl = contextContainer.createEl('div', { 
-                cls: 'compose-context-text',
-                text: this.selectedText 
-            });
-            contextEl.style.cssText = `
-                background: var(--background-secondary);
-                padding: 10px;
-                border-radius: 4px;
-                margin-bottom: 15px;
-                max-height: 100px;
-                overflow-y: auto;
-                font-size: 0.9em;
-                color: var(--text-muted);
-            `;
-        }
+        // Store reference for later use
+        this.promptInput = {
+            getValue: () => textArea.value,
+            inputEl: textArea,
+            setDisabled: (disabled: boolean) => {
+                textArea.disabled = disabled;
+            }
+        } as TextAreaComponent;
 
-        // Prompt input
-        new Setting(contentEl)
-            .setName('Your prompt')
-            .setDesc('Describe what you want to compose or how you want to modify the selected text')
-            .addTextArea((textArea) => {
-                this.promptInput = textArea;
-                textArea.setPlaceholder('e.g., "Make this more professional", "Add examples", "Convert to bullet points"...');
-                textArea.inputEl.rows = 4;
-                textArea.inputEl.style.width = '100%';
-                textArea.inputEl.addEventListener('keydown', (event) => {
-                    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
-                        event.preventDefault();
-                        this.handleSubmit();
-                    }
-                });
-                // Auto-focus the text area
-                setTimeout(() => textArea.inputEl.focus(), 100);
-            });
+        // Auto-focus and select all if there's initial value
+        setTimeout(() => {
+            textArea.focus();
+            if (this.initialValue) {
+                textArea.setSelectionRange(0, this.initialValue.length);
+            }
+        }, 100);
 
-        // Buttons
-        const buttonContainer = contentEl.createDiv('compose-buttons');
+        // Handle Ctrl+Enter / Cmd+Enter to submit
+        textArea.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+                event.preventDefault();
+                this.handleSubmit();
+            }
+        });
+
+        // Create button container
+        const buttonContainer = contentEl.createDiv('compose-modal-buttons');
         buttonContainer.style.cssText = `
             display: flex;
             justify-content: flex-end;
-            gap: 10px;
-            margin-top: 20px;
+            gap: 12px;
         `;
 
         // Cancel button
@@ -89,18 +97,6 @@ export class ComposePromptModal extends Modal {
             .setButtonText('Generate')
             .setCta()
             .onClick(() => this.handleSubmit());
-
-        // Add keyboard shortcut hint
-        const hint = contentEl.createEl('div', {
-            text: 'Press Ctrl/Cmd + Enter to generate',
-            cls: 'compose-hint'
-        });
-        hint.style.cssText = `
-            text-align: center;
-            color: var(--text-muted);
-            font-size: 0.8em;
-            margin-top: 10px;
-        `;
     }
 
     private async handleSubmit() {
@@ -112,24 +108,25 @@ export class ComposePromptModal extends Modal {
             return;
         }
 
-        // Disable submit button and show loading state
+        // Disable the submit button and show loading state
         this.submitButton.setButtonText('Generating...');
         this.submitButton.setDisabled(true);
+        this.promptInput.setDisabled(true);
 
         try {
-            // Close this modal before showing suggestions
+            // Close this modal first
             this.close();
 
             // Execute the compose operation
-            await this.composeOperation.execute(
-                this.editor, 
-                this.selectedText, 
-                prompt, 
-                this.settings
-            );
+            await this.composeOperation.execute(this.editor, this.selectedText, prompt, this.settings);
         } catch (error) {
             console.error('Compose operation failed:', error);
             new Notice('Failed to generate suggestions. Please try again.');
+
+            // Re-enable controls if the modal is still open
+            this.submitButton.setButtonText('Generate');
+            this.submitButton.setDisabled(false);
+            this.promptInput.setDisabled(false);
         }
     }
 
