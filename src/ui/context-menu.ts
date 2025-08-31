@@ -3,6 +3,8 @@ import { SummarizeOperation } from '../operations/summarize';
 import { TranslateOperation } from '../operations/translate';
 import { KeywordsOperation } from '../operations/keywords';
 import { RewriteOperation } from '../operations/rewrite';
+import { ComposeOperation } from '../operations/compose';
+import { ComposePromptModal } from './compose-modal';
 import { AIPluginSettings } from '../types/config';
 import { Language, POPULAR_LANGUAGES } from '../types/languages';
 import { TONES } from '../types/tones';
@@ -12,21 +14,27 @@ export class ContextMenuManager {
 	private translateOperation: TranslateOperation;
 	private keywordsOperation: KeywordsOperation;
 	private rewriteOperation: RewriteOperation;
+	private composeOperation: ComposeOperation;
 	private settings: AIPluginSettings;
 	private popularLanguages: Language[];
 	private tones: string[] = TONES;
+	private app: any;
 
 	constructor(
+		app: any,
 		summarizeOperation: SummarizeOperation,
 		translateOperation: TranslateOperation,
 		keywordsOperation: KeywordsOperation,
 		rewriteOperation: RewriteOperation,
+		composeOperation: ComposeOperation,
 		settings: AIPluginSettings
 	) {
+		this.app = app;
 		this.summarizeOperation = summarizeOperation;
 		this.translateOperation = translateOperation;
 		this.keywordsOperation = keywordsOperation;
 		this.rewriteOperation = rewriteOperation;
+		this.composeOperation = composeOperation;
 		this.settings = settings;
 		this.popularLanguages = [...POPULAR_LANGUAGES];
 	}
@@ -46,6 +54,25 @@ export class ContextMenuManager {
 
 				// Create the main submenu
 				const subMenu: Menu = (item as any).setSubmenu();
+
+				// Add compose option (NEW)
+				subMenu.addItem((subItem: MenuItem) => {
+					subItem
+						.setTitle('Compose with AI')
+						.setIcon('edit-3')
+						.onClick(() => {
+							new ComposePromptModal(
+								this.app,
+								editor,
+								selection,
+								this.settings,
+								this.composeOperation
+							).open();
+						});
+				});
+
+				// Add separator
+				subMenu.addSeparator();
 
 				// Add summarize option
 				subMenu.addItem((subItem: MenuItem) => {

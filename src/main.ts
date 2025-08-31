@@ -7,9 +7,12 @@ import { SummarizeOperation } from './operations/summarize';
 import { TranslateOperation } from './operations/translate';
 import { KeywordsOperation } from './operations/keywords';
 import { RewriteOperation } from './operations/rewrite';
+import { ComposeOperation } from './operations/compose';
 import { ContextMenuManager } from './ui/context-menu';
 import { CommandsManager } from './ui/commands';
 import { AIPluginSettingTab } from './ui/settings-tab';
+import { ComposePromptModal } from './ui/compose-modal';
+import { AIContextMenu } from './ui/ai-context-menu';
 
 export class AIPlugin extends Plugin {
 	settings: AIPluginSettings;
@@ -20,8 +23,10 @@ export class AIPlugin extends Plugin {
 	private translateOperation: TranslateOperation;
 	private keywordsOperation: KeywordsOperation;
 	private rewriterOperation: RewriteOperation;
+	private composeOperation: ComposeOperation;
 	private contextMenuManager: ContextMenuManager;
 	private commandsManager: CommandsManager;
+	private aiContextMenu: AIContextMenu;
 
 	async onload() {
 		await this.loadSettings();
@@ -63,13 +68,16 @@ export class AIPlugin extends Plugin {
 			this.streamingService,
 			this.configService
 		);
+		this.composeOperation = new ComposeOperation(this.app);
 
 		// Initialize UI components
 		this.contextMenuManager = new ContextMenuManager(
+			this.app,
 			this.summarizeOperation,
 			this.translateOperation,
 			this.keywordsOperation,
 			this.rewriterOperation,
+			this.composeOperation,
 			this.settings
 		);
 		this.commandsManager = new CommandsManager(
@@ -77,6 +85,15 @@ export class AIPlugin extends Plugin {
 			this.translateOperation,
 			this.keywordsOperation,
 			this.rewriterOperation,
+			this.settings
+		);
+		this.aiContextMenu = new AIContextMenu(
+			this.app,
+			this.summarizeOperation,
+			this.translateOperation,
+			this.keywordsOperation,
+			this.rewriterOperation,
+			this.composeOperation,
 			this.settings
 		);
 	}
@@ -95,6 +112,32 @@ export class AIPlugin extends Plugin {
 		commands.forEach(command => {
 			this.addCommand(command);
 		});
+
+		// Add compose command with keyboard shortcut
+		this.addCommand({
+			id: 'compose-with-ai',
+			name: 'Compose with AI',
+			editorCallback: (editor: Editor) => {
+				const selection = editor.getSelection();
+				new ComposePromptModal(
+					this.app,
+					editor,
+					selection,
+					this.settings,
+					this.composeOperation
+				).open();
+			}
+		});
+
+		// Add AI Backends context menu command with keyboard shortcut
+		this.addCommand({
+			id: 'show-ai-context-menu',
+			name: 'Show AI Backends Menu',
+			hotkeys: [{ modifiers: ['Mod', 'Shift'], key: 'a' }],
+			editorCallback: (editor: Editor) => {
+				this.aiContextMenu.showContextMenu(editor);
+			}
+		});
 	}
 
 	async loadSettings(): Promise<void> {
@@ -109,6 +152,7 @@ export class AIPlugin extends Plugin {
 		this.aiService.updateSettings(this.settings);
 		this.contextMenuManager.updateSettings(this.settings);
 		this.commandsManager.updateSettings(this.settings);
+		this.aiContextMenu.updateSettings(this.settings);
 
 		// Reload config and reset watcher when settings change
 		await this.configService.loadConfig();
