@@ -28,6 +28,7 @@ export interface RewriteRequest {
 	payload: {
 		text: string;
 		instruction: string;
+        tone?: string;
 	};
 	config: AIOperationConfig;
 }

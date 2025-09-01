@@ -18,7 +18,7 @@ export class RewriteOperation {
 		this.configService = configService;
 	}
 
-	async execute(editor: Editor, text: string, instruction: string, headerLabel: string, settings: AIPluginSettings): Promise<void> {
+	async execute(editor: Editor, text: string, instruction: string,tone: string ,headerLabel: string, settings: AIPluginSettings): Promise<void> {
 		const config = this.configService.getConfig();
 
 		if (!config || !config.rewrite) {
@@ -30,12 +30,12 @@ export class RewriteOperation {
 			new Notice('Please set the API URL in settings');
 			return;
 		}
-
 		try {
 			const requestBody: RewriteRequest = {
 				payload: {
 					text,
-					instruction
+					instruction,
+                    ...(tone && tone.trim() !== '' && { tone })
 				},
 				config: {
 					provider: config.rewrite.provider,
@@ -73,32 +73,26 @@ export class RewriteOperation {
 
 	// Convenience methods for different rewrite operations
 	async improveDescription(editor: Editor, text: string, settings: AIPluginSettings): Promise<void> {
-		const instruction = 'Improve the following description for clarity, concision, and impact while keeping the facts and meaning. Return only the improved description.';
-		await this.execute(editor, text, instruction, 'Improved description', settings);
+		await this.execute(editor, text, 'improve_text', '','Improved description', settings);
 	}
 
 	async improveWriting(editor: Editor, text: string, settings: AIPluginSettings): Promise<void> {
-		const instruction = 'Rewrite the text to improve clarity, grammar, and flow, preserving meaning and voice. Return only the rewritten text.';
-		await this.execute(editor, text, instruction, 'Improved writing', settings);
+		await this.execute(editor, text, 'improve_text', '','Improved writing', settings);
 	}
 
 	async fixSpellingGrammar(editor: Editor, text: string, settings: AIPluginSettings): Promise<void> {
-		const instruction = 'Fix spelling, grammar, and punctuation without changing meaning or tone. Return only the corrected text.';
-		await this.execute(editor, text, instruction, 'Fixed spelling & grammar', settings);
+		await this.execute(editor, text, 'fix_spelling_grammar', '','Fixed spelling & grammar', settings);
 	}
 
 	async brainstorm(editor: Editor, text: string, settings: AIPluginSettings): Promise<void> {
-		const instruction = 'Brainstorm 6-10 concise ideas based on the text. Use a bulleted list, each idea on its own line.';
-		await this.execute(editor, text, instruction, 'Brainstorm', settings);
+		await this.execute(editor, text, 'brainstorm_ideas', '','Brainstorm', settings);
 	}
 
 	async makeShorter(editor: Editor, text: string, settings: AIPluginSettings): Promise<void> {
-		const instruction = 'Rewrite the text to be significantly shorter (around 30-50% reduction) while preserving key points and tone. Return only the shortened version.';
-		await this.execute(editor, text, instruction, 'Shorter version', settings);
+		await this.execute(editor, text, 'shorten', '','Shorter version', settings);
 	}
 
 	async changeTone(editor: Editor, text: string, tone: string, settings: AIPluginSettings): Promise<void> {
-		const instruction = `Rewrite the text in a ${tone.toLowerCase()} tone while preserving meaning and intent. Return only the rewritten text.`;
-		await this.execute(editor, text, instruction, `Changed tone (${tone})`, settings);
+		await this.execute(editor, text, 'rewrite_with_tone', tone,'Changing tone', settings);
 	}
 }
