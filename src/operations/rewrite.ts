@@ -18,7 +18,7 @@ export class RewriteOperation {
 		this.configService = configService;
 	}
 
-	async execute(editor: Editor, text: string, instruction: string, headerLabel: string, settings: AIPluginSettings): Promise<void> {
+	async execute(editor: Editor, text: string, instruction: string,tone: string ,headerLabel: string, settings: AIPluginSettings): Promise<void> {
 		const config = this.configService.getConfig();
 
 		if (!config || !config.rewrite) {
@@ -35,6 +35,7 @@ export class RewriteOperation {
 				payload: {
 					text,
 					instruction,
+                    ...(tone && tone.trim() !== '' && { tone })
 				},
 				config: {
 					provider: config.rewrite.provider,
@@ -72,26 +73,26 @@ export class RewriteOperation {
 
 	// Convenience methods for different rewrite operations
 	async improveDescription(editor: Editor, text: string, settings: AIPluginSettings): Promise<void> {
-		await this.execute(editor, text, 'improve_text', 'Improved description', settings);
+		await this.execute(editor, text, 'improve_text', '','Improved description', settings);
 	}
 
 	async improveWriting(editor: Editor, text: string, settings: AIPluginSettings): Promise<void> {
-		await this.execute(editor, text, 'improve_text', 'Improved writing', settings);
+		await this.execute(editor, text, 'improve_text', '','Improved writing', settings);
 	}
 
 	async fixSpellingGrammar(editor: Editor, text: string, settings: AIPluginSettings): Promise<void> {
-		await this.execute(editor, text, 'fix_spelling_grammar', 'Fixed spelling & grammar', settings);
+		await this.execute(editor, text, 'fix_spelling_grammar', '','Fixed spelling & grammar', settings);
 	}
 
 	async brainstorm(editor: Editor, text: string, settings: AIPluginSettings): Promise<void> {
-		await this.execute(editor, text, 'brainstorm_ideas', 'Brainstorm', settings);
+		await this.execute(editor, text, 'brainstorm_ideas', '','Brainstorm', settings);
 	}
 
 	async makeShorter(editor: Editor, text: string, settings: AIPluginSettings): Promise<void> {
-		await this.execute(editor, text, 'shorten', 'Shorter version', settings);
+		await this.execute(editor, text, 'shorten', '','Shorter version', settings);
 	}
 
 	async changeTone(editor: Editor, text: string, tone: string, settings: AIPluginSettings): Promise<void> {
-		await this.execute(editor, text, 'rewrite_with_tone', tone, settings);
+		await this.execute(editor, text, 'rewrite_with_tone', tone,'Changing tone', settings);
 	}
 }
