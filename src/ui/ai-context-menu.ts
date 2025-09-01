@@ -218,8 +218,4 @@ export class AIContextMenu extends Component {
         menu.showAtPosition({ x, y });
     }
 
-    setPopularLanguages(languages: Language[]): void {
-        this.popularLanguages.length = 0;
-        this.popularLanguages.push(...languages);
-    }
 }
