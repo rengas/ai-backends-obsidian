@@ -31,3 +31,11 @@ export interface RewriteRequest {
 	};
 	config: AIOperationConfig;
 }
+
+export interface ComposeRequest {
+    payload: {
+        topic: string;
+        maxLength: number;
+    };
+    config: AIOperationConfig;
+}

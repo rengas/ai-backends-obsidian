@@ -60,3 +60,14 @@ export interface RewriteResponse {
 	provider?: string;
 	model?: string;
 }
+
+export interface ComposeResponse {
+    text: string;
+    provider: string;
+    model: string;
+    usage: {
+        input_tokens: number;
+        output_tokens: number;
+        total_tokens: number;
+    };
+}

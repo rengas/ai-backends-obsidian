@@ -1,5 +1,5 @@
 import { AIPluginSettings } from '../types/config';
-import {SummarizeRequest, KeywordsRequest, TranslateRequest, RewriteRequest} from '../types/requests';
+import {SummarizeRequest, KeywordsRequest, TranslateRequest, RewriteRequest, ComposeRequest} from '../types/requests';
 import { SummarizeResponse, KeywordsResponse, TranslateResponse } from '../types/responses';
 
 export class AIService {
@@ -28,6 +28,10 @@ export class AIService {
 	async rewrite(request: RewriteRequest): Promise<Response> {
 		return this.makeRequest('/api/v1/rewrite', request, request.config.stream);
 	}
+
+    async compose(request: ComposeRequest): Promise<Response> {
+        return this.makeRequest('/api/v1/compose', request, request.config.stream);
+    }
 
 	private async makeRequest(endpoint: string, requestBody: any, isStreaming: boolean): Promise<Response> {
 		const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
