@@ -35,25 +35,27 @@ summarize:
   temperature: 0.3
   stream: true
   maxLength: 500
-
 keywords:
   provider: "lmstudio"
   model: "gemma-3-4b-it"
   temperature: 0.3
   stream: false
   maxKeywords: 5
-
 translate:
   provider: "ollama"
   model: "gemma2:2b"
   temperature: 0.1
   stream: false
   defaultTargetLanguage: "en"
-
 rewrite:
   provider: "openai"
   model: "gpt-4o-mini"
   temperature: 0.3
+  stream: true
+compose:
+  provider: "openai"
+  model: "gpt-4o-mini"
+  maxLength: 500
   stream: true
 ```
 
