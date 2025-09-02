@@ -5,7 +5,6 @@ import { ComposeOperation } from '../operations/compose';
 
 export class ComposePromptModal extends Modal {
     private editor: Editor;
-    private selectedText: string;
     private settings: AIPluginSettings;
     private composeOperation: ComposeOperation;
     private promptInput: TextAreaComponent;
@@ -22,7 +21,6 @@ export class ComposePromptModal extends Modal {
     ) {
         super(app);
         this.editor = editor;
-        this.selectedText = selectedText;
         this.settings = settings;
         this.composeOperation = composeOperation;
         this.initialValue = initialValue;
@@ -118,7 +116,7 @@ export class ComposePromptModal extends Modal {
             this.close();
 
             // Execute the compose operation
-            await this.composeOperation.execute(this.editor, this.selectedText, prompt, this.settings);
+            await this.composeOperation.execute(this.editor,prompt, this.settings);
         } catch (error) {
             console.error('Compose operation failed:', error);
             new Notice('Failed to generate suggestions. Please try again.');

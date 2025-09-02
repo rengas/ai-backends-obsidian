@@ -1,152 +1,79 @@
 import { Editor, Notice } from 'obsidian';
 import { AIPluginSettings } from '../types/config';
 import { ComposeSuggestionsModal } from '../ui/compose-modal';
-
-export interface ComposeResponse {
-    suggestions: string[];
-    success: boolean;
-    error?: string;
-}
+import {AIService} from "../services/ai-service";
+import {StreamingService} from "../services/streaming-service";
+import {ConfigService} from "../services/config-service";
+import {ComposeRequest, RewriteRequest} from "../types/requests";
+import {TranslateResponse} from "../types/responses";
+import {appendToEndOfDocument} from "../utils/editor-utils";
 
 export class ComposeOperation {
-    private app: any;
+    private aiService: AIService;
+    private streamingService: StreamingService;
+    private configService: ConfigService;
 
-    constructor(app: any) {
-        this.app = app;
+    constructor(aiService: AIService, streamingService: StreamingService, configService: ConfigService) {
+        this.aiService = aiService;
+        this.streamingService = streamingService;
+        this.configService = configService;
     }
+
 
     async execute(
-        editor: Editor, 
-        selectedText: string, 
-        prompt: string, 
-        settings: AIPluginSettings
+        editor: Editor,
+        topic: string,
+        settings: AIPluginSettings,
     ): Promise<void> {
-        const notice = new Notice('Generating suggestions...', 0);
+        const config = this.configService.getConfig();
 
-        try {
-            // Get cursor position for insertion
-            const cursorPos = editor.getCursor();
-
-            // Make API call
-            const response = await this.callComposeAPI(selectedText, prompt, settings);
-
-            notice.hide();
-
-            if (response.success && response.suggestions.length > 0) {
-                // Show suggestions modal
-                new ComposeSuggestionsModal(
-                    this.app,
-                    editor,
-                    selectedText,
-                    response.suggestions,
-                    cursorPos
-                ).open();
-            } else {
-                new Notice(response.error || 'No suggestions were generated');
-            }
-        } catch (error) {
-            notice.hide();
-            console.error('Compose operation error:', error);
-            new Notice('Failed to generate suggestions. Please check your connection and try again.');
+        if (!config || !config.compose) {
+            new Notice('Please configure the compose settings in the YAML file first');
+            return;
         }
-    }
 
-    private async callComposeAPI(
-        selectedText: string, 
-        prompt: string, 
-        settings: AIPluginSettings
-    ): Promise<ComposeResponse> {
+        if (!settings.apiUrl) {
+            new Notice('Please set the API URL in settings');
+            return;
+        }
+
         try {
-            // Load configuration
-            const config = await this.loadConfig(settings.configFilePath);
-            const composeConfig = config.compose || config.rewrite || {};
-
-            const requestBody = {
-                operation: 'compose',
-                text: selectedText,
-                prompt: prompt,
-                config: {
-                    provider: composeConfig.provider || 'openai',
-                    model: composeConfig.model || 'gpt-4o-mini',
-                    temperature: composeConfig.temperature || 0.7,
-                    stream: false, // We need complete responses for suggestions
-                    maxSuggestions: composeConfig.maxSuggestions || 3
-                }
-            };
-
-            const response = await fetch(`${settings.apiUrl}/ai/compose`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
+            const requestBody: ComposeRequest = {
+                payload: {
+                    topic: topic,
+                    maxLength:config.compose?.maxLength || 200,
                 },
-                body: JSON.stringify(requestBody)
-            });
-
-            if (!response.ok) {
-                throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-            }
-
-            const data = await response.json();
-
-            return {
-                suggestions: data.suggestions || [],
-                success: true
-            };
-        } catch (error) {
-            console.error('API call failed:', error);
-            return {
-                suggestions: [],
-                success: false,
-                error: error instanceof Error ? error.message : 'Unknown error occurred'
-            };
-        }
-    }
-
-    private async loadConfig(configPath: string): Promise<any> {
-        try {
-            const configFile = this.app.vault.getAbstractFileByPath(configPath);
-            if (!configFile) {
-                console.warn(`Config file not found at ${configPath}, using defaults`);
-                return {};
-            }
-
-            const configContent = await this.app.vault.read(configFile);
-
-            // Parse YAML (simple implementation)
-            // In a real implementation, you'd want to use a proper YAML parser
-            const config: any = {};
-            const lines = configContent.split('\n');
-            let currentSection = '';
-
-            for (const line of lines) {
-                const trimmed = line.trim();
-                if (!trimmed || trimmed.startsWith('#')) continue;
-
-                if (trimmed.endsWith(':') && !trimmed.includes(' ')) {
-                    currentSection = trimmed.slice(0, -1);
-                    config[currentSection] = {};
-                } else if (trimmed.includes(':') && currentSection) {
-                    const [key, ...valueParts] = trimmed.split(':');
-                    const value = valueParts.join(':').trim();
-                    // Remove quotes if present
-                    const cleanValue = value.replace(/^["']|["']$/g, '');
-
-                    // Try to parse as number or boolean
-                    let parsedValue: any = cleanValue;
-                    if (!isNaN(Number(cleanValue))) {
-                        parsedValue = Number(cleanValue);
-                    } else if (cleanValue === 'true' || cleanValue === 'false') {
-                        parsedValue = cleanValue === 'true';
-                    }
-
-                    config[currentSection][key.trim()] = parsedValue;
+                config: {
+                    provider: config.compose.provider,
+                    model: config.compose.model,
+                    temperature: config.compose.temperature,
+                    stream: config.compose.stream
                 }
-            }
+            };
+            const response = await this.aiService.compose(requestBody);
 
-            return config;
+            // Check content type to determine if it's a streaming response
+            const contentType = response.headers.get('content-type') || '';
+            const isStreaming = config.translate.stream &&
+                (contentType.includes('text/event-stream') || contentType.includes('application/x-ndjson') || response.body);
+
+            if (isStreaming && response.body) {
+                await this.streamingService.handleStreamingResponse(
+                    response,
+                    editor,
+                    `\n\n**New Idea**\n\n`,
+                    'Composed successfully'
+                );
+            } else {
+                // Handle non-streaming response
+                const result: TranslateResponse = await response.json();
+                appendToEndOfDocument(editor, `\n\n**New Idea**\n\n`,);
+                new Notice('Composed successfully');
+            }
         } catch (error) {
-            console.error('Failed to load config:', error);
-            return {};
+            console.error('Compose operation error:', error);
+            new Notice('Error applying action. Please check your API settings.');
+
         }
     }
 }

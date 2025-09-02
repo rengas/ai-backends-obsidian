@@ -65,7 +65,9 @@ export class AIPlugin extends Plugin {
 			this.streamingService,
 			this.configService
 		);
-		this.composeOperation = new ComposeOperation(this.app);
+		this.composeOperation = new ComposeOperation(this.aiService,
+            this.streamingService,
+            this.configService);
 
 		this.commandsManager = new CommandsManager(
 			this.summarizeOperation,

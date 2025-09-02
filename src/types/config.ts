@@ -27,4 +27,7 @@ export interface AIConfig {
 		defaultTargetLanguage: string;
 	};
 	rewrite?: AIOperationConfig;
+    compose?: AIOperationConfig & {
+        maxLength: number;
+    };
 }
