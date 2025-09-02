@@ -27,8 +27,8 @@ export class ComposeOperation {
     ): Promise<void> {
         const config = this.configService.getConfig();
 
-        if (!config || !config.rewrite) {
-            new Notice('Please configure the rewrite settings in the YAML file first');
+        if (!config || !config.compose) {
+            new Notice('Please configure the compose settings in the YAML file first');
             return;
         }
 
@@ -44,10 +44,10 @@ export class ComposeOperation {
                     maxLength:config.compose?.maxLength || 200,
                 },
                 config: {
-                    provider: config.rewrite.provider,
-                    model: config.rewrite.model,
-                    temperature: config.rewrite.temperature,
-                    stream: config.rewrite.stream
+                    provider: config.compose.provider,
+                    model: config.compose.model,
+                    temperature: config.compose.temperature,
+                    stream: config.compose.stream
                 }
             };
             const response = await this.aiService.compose(requestBody);
