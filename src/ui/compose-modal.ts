@@ -23,7 +23,7 @@ export class ComposePromptModal extends Modal {
         this.editor = editor;
         this.settings = settings;
         this.composeOperation = composeOperation;
-        this.initialValue = initialValue;
+        this.initialValue = selectedText || initialValue;
     }
 
     onOpen() {
