@@ -28,8 +28,8 @@ export class AIPlugin extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
-		this.initializeServices();
-		this.registerCommands();
+		await this.initializeServices();
+		await this.registerCommands();
 		this.addSettingTab(new AIPluginSettingTab(this.app, this));
 
 		// Delay config loading to ensure vault is ready
@@ -37,9 +37,11 @@ export class AIPlugin extends Plugin {
 			this.configService.loadConfig();
 			this.configService.setupConfigWatcher();
 		});
+
+		await this.createExampleConfig();
 	}
 
-	private initializeServices(): void {
+	private async initializeServices(): Promise<void> {
 		// Initialize services
 		this.configService = new ConfigService(this.app, this.settings);
 		this.aiService = new AIService(this.settings);
@@ -87,7 +89,7 @@ export class AIPlugin extends Plugin {
 		);
 	}
 
-	private registerCommands(): void {
+	private async  registerCommands(): Promise<void> {
 		const commands = this.commandsManager.getCommands();
 		commands.forEach(command => {
 			this.addCommand(command);
@@ -140,6 +142,56 @@ export class AIPlugin extends Plugin {
 
 	onunload(): void {
 		this.configService.cleanup();
+	}
+
+	private async createExampleConfig(): Promise<void> {
+		const configDir = 'ai-backends';
+		const configFilePath = `${configDir}/config.example.md`;
+		const vault = this.app.vault;
+
+		try {
+			// Check if the directory exists
+			const dirExists = await vault.adapter.exists(configDir);
+			if (!dirExists) {
+				await vault.createFolder(configDir);
+			}
+
+			// Check if the file exists
+			const fileExists = await vault.adapter.exists(configFilePath);
+			if (!fileExists) {
+				const defaultConfig = `
+summarize:
+		provider: "ollama"
+		model: "gemma3:4b"
+		temperature: 0.3
+		stream: true
+		maxLength: 100
+keywords:
+		provider: "ollama"
+		model: "mistrallite:latest"
+		temperature: 0.3
+		stream: false
+		maxKeywords: 500
+translate:
+		provider: "ollama"
+		model: "gemma3:4b"
+		temperature: 0.1
+		stream: true
+		defaultTargetLanguage: "ta"
+rewrite:
+		provider: "ollama"
+		model: "gemma3:4b"
+		stream: true
+compose:
+		provider: "ollama"
+		model: "gemma3:4b"
+		maxLength: 50
+`.trim();
+				await vault.create(configFilePath, defaultConfig);
+			}
+		} catch (error) {
+			console.error('Error creating example config file:', error);
+		}
 	}
 }
 

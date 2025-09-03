@@ -1,0 +1,26 @@
+summarize:
+  provider: "ollama"
+  model: "gemma3:4b"
+  temperature: 0.3
+  stream: true
+  maxLength: 100
+keywords:
+  provider: "ollama"
+  model: "mistrallite:latest"
+  temperature: 0.3
+  stream: false
+  maxKeywords: 500
+translate:  
+  provider: "ollama"  
+  model: "gemma3:4b"  
+  temperature: 0.1  
+  stream: true  
+  defaultTargetLanguage: "ta"
+rewrite:  
+  provider: "ollama"  
+  model: "gemma3:4b"  
+  stream: true
+compose:  
+  provider: "ollama"  
+  model: "gemma3:4b"  
+  maxLength: 50
