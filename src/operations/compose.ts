@@ -54,7 +54,7 @@ export class ComposeOperation {
 
             // Check content type to determine if it's a streaming response
             const contentType = response.headers.get('content-type') || '';
-            const isStreaming = config.translate.stream &&
+            const isStreaming = config.compose.stream &&
                 (contentType.includes('text/event-stream') || contentType.includes('application/x-ndjson') || response.body);
 
             if (isStreaming && response.body) {
