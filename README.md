@@ -36,15 +36,6 @@ Upon installation, the plugin automatically creates a directory named `ai-backen
 
 Here is the default configuration from `config.example.yaml`:
 ```yaml
-# AI Backends Configuration Example
-#
-# How to use this file:
-# 1. Create a copy of this file in the same directory (or anywhere in your vault).
-# 2. Rename it to something like 'config.yaml'.
-# 3. In Obsidian, go to Settings -> AI Backends and update the 'Config File Path'
-#    to the path of your new file (e.g., 'ai-backends/config.yaml').
-# 4. Customize the settings below to your liking.
-
 summarize:
   provider: "ollama"
   model: "gemma3:4b"

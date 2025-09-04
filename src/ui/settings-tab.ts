@@ -45,11 +45,11 @@ export class AIPluginSettingTab extends PluginSettingTab {
 		codeBlock.createEl('code', {text: `
 AI Backends Configuration Example
 How to use this file:
-1. Create a copy of this file in the same directory (or anywhere in your vault).
-2. Rename it to something like 'config.yaml'.
-3. In Obsidian, go to Settings -> AI Backends and update the 'Config File Path'
+1. Create a copy of config.example.yaml file in the ai-backends directory (or anywhere in your vault).
+2. Rename it to something like 'config.md' or 'config.yaml'.
+3. In Obsidian, go to Community plugins -> Settings -> AI Backends and update the 'Config File Path'
 to the path of your new file (e.g., 'ai-backends/config.yaml').
-4. Customize the settings to your liking.`});
+4. Customize the settings to your liking. You can use the default values as a starting point from config.example.yaml.`});
 
 	}
 }
