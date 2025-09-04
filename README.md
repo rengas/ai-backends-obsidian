@@ -26,37 +26,42 @@ This plugin integrates with aibackends.com to provide AI-powered text analysis f
 2. Set your **API URL** (typically `http://localhost:3000` if running aibackends locally)
 3. Set the **Configuration File Path** (e.g., `ai-config/config.yaml`)
 
-### 3. Create Configuration File
-Create a YAML configuration file at the path specified in settings:
-```
+### 3. Create Your Configuration File
+
+Upon installation, the plugin automatically creates a directory named `ai-backends` in your vault's root, containing a `config.example.yaml` file.
+
+1.  **Copy the Example File**: Create a copy of `ai-backends/config.example.yaml` and rename it to `config.yaml` (or any other name you prefer) in the same directory.
+2.  **Update Settings Path**: In Obsidian, go to `Settings` → `AI Backends` and set the **Configuration File Path** to point to your new file (e.g., `ai-backends/config.yaml`).
+3.  **Customize Your Configuration**: Open your new `config.yaml` file and customize the AI provider, model, and other settings for each operation.
+
+Here is the default configuration from `config.example.yaml`:
+```yaml
 summarize:
   provider: "ollama"
   model: "gemma3:4b"
   temperature: 0.3
   stream: true
-  maxLength: 500
+  maxLength: 100
 keywords:
-  provider: "lmstudio"
-  model: "gemma-3-4b-it"
+  provider: "ollama"
+  model: "mistrallite:latest"
   temperature: 0.3
   stream: false
-  maxKeywords: 5
+  maxKeywords: 500
 translate:
   provider: "ollama"
-  model: "gemma2:2b"
+  model: "gemma3:4b"
   temperature: 0.1
-  stream: false
-  defaultTargetLanguage: "en"
+  stream: true
+  defaultTargetLanguage: "ta"
 rewrite:
-  provider: "openai"
-  model: "gpt-4o-mini"
-  temperature: 0.3
+  provider: "ollama"
+  model: "gemma3:4b"
   stream: true
 compose:
-  provider: "openai"
-  model: "gpt-4o-mini"
-  maxLength: 500
-  stream: true
+  provider: "ollama"
+  model: "gemma3:4b"
+  maxLength: 50
 ```
 
 The `rewrite` section is used by generic Actions like Improve writing, Fix spelling & grammar, Brainstorm, Make shorter, and tone changes.
