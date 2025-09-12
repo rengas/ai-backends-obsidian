@@ -36,13 +36,19 @@ export class AIService {
 	private async makeRequest(endpoint: string, requestBody: any, isStreaming: boolean): Promise<Response> {
 		const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
 
+		const headers: HeadersInit = {
+			'Content-Type': 'application/json',
+			'Origin': 'app://obsidian.md',
+			'Accept': isStreaming ? 'text/event-stream, application/x-ndjson, application/json' : 'application/json'
+		};
+
+		if (this.settings.apiKey) {
+			headers['Authorization'] = `Bearer ${this.settings.apiKey}`;
+		}
+
 		const response = await fetch(`${this.settings.apiUrl}${normalizedEndpoint}`, {
 			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'Origin': 'app://obsidian.md',
-				'Accept': isStreaming ? 'text/event-stream, application/x-ndjson, application/json' : 'application/json'
-			},
+			headers: headers,
 			body: JSON.stringify(requestBody)
 		});
 

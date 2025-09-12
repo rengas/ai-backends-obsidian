@@ -28,6 +28,17 @@ export class AIPluginSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
+			.setName('API Key')
+			.setDesc('Enter your API key')
+			.addText(text => text
+				.setPlaceholder('Enter your API key')
+				.setValue(this.plugin.settings.apiKey)
+				.onChange(async (value) => {
+					this.plugin.settings.apiKey = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
 			.setName('Configuration File Path')
 			.setDesc('Full path to the YAML configuration file (relative to vault root)')
 			.addText(text => text
