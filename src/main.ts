@@ -12,6 +12,7 @@ import { CommandsManager } from './ui/commands';
 import { AIPluginSettingTab } from './ui/settings-tab';
 import { ComposePromptModal } from './ui/compose-modal';
 import { AIContextMenu } from './ui/ai-context-menu';
+import { RibbonIconManager } from './ui/ribbon-icon';
 
 export class AIPlugin extends Plugin {
 	settings: AIPluginSettings;
@@ -25,12 +26,22 @@ export class AIPlugin extends Plugin {
 	private composeOperation: ComposeOperation;
 	private commandsManager: CommandsManager;
 	private aiContextMenu: AIContextMenu;
+	private ribbonIconManager: RibbonIconManager;
 
 	async onload() {
 		await this.loadSettings();
 		await this.initializeServices();
 		await this.registerCommands();
 		this.addSettingTab(new AIPluginSettingTab(this.app, this));
+
+		// Add ribbon icon
+		this.addRibbonIcon(
+			'brain-circuit',
+			'AI Backends',
+			(evt: MouseEvent) => {
+				this.ribbonIconManager.handleRibbonIconClick(evt);
+			}
+		);
 
 		// Delay config loading to ensure vault is ready
 		this.app.workspace.onLayoutReady(() => {
@@ -87,6 +98,12 @@ export class AIPlugin extends Plugin {
 			this.composeOperation,
 			this.settings
 		);
+		this.ribbonIconManager = new RibbonIconManager(
+			this.app,
+			this.aiContextMenu,
+			this.composeOperation,
+			this.settings
+		);
 	}
 
 	private async  registerCommands(): Promise<void> {
@@ -134,6 +151,7 @@ export class AIPlugin extends Plugin {
 		this.aiService.updateSettings(this.settings);
 		this.commandsManager.updateSettings(this.settings);
 		this.aiContextMenu.updateSettings(this.settings);
+		this.ribbonIconManager.updateSettings(this.settings);
 
 		// Reload config and reset watcher when settings change
 		await this.configService.loadConfig();
