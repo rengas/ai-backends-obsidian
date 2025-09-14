@@ -3,12 +3,14 @@ import { AIContextMenu } from './ai-context-menu';
 import { ComposePromptModal } from './compose-modal';
 import { ComposeOperation } from '../operations/compose';
 import { AIPluginSettings } from '../types/config';
+import { UIStateService, UIState } from '../services/ui-state-service';
 
 export class FloatingIcon extends Component {
     private app: App;
     private aiContextMenu: AIContextMenu;
     private composeOperation: ComposeOperation;
     private settings: AIPluginSettings;
+    private uiStateService: UIStateService;
     private iconElement: HTMLElement;
     private isVisible: boolean = false;
     private currentEditor: Editor | null = null;
@@ -18,13 +20,15 @@ export class FloatingIcon extends Component {
         app: App,
         aiContextMenu: AIContextMenu,
         composeOperation: ComposeOperation,
-        settings: AIPluginSettings
+        settings: AIPluginSettings,
+        uiStateService: UIStateService
     ) {
         super();
         this.app = app;
         this.aiContextMenu = aiContextMenu;
         this.composeOperation = composeOperation;
         this.settings = settings;
+        this.uiStateService = uiStateService;
 
         // Throttle position updates to improve performance
         this.updatePositionThrottled = this.throttle(() => {
@@ -39,7 +43,7 @@ export class FloatingIcon extends Component {
     onload(): void {
         // Create the floating icon element
         this.iconElement = document.createElement('div');
-        this.iconElement.addClass('ai-floating-icon');
+        this.iconElement.addClass('fab-FloatingActionButton');
         this.iconElement.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2-3 7h6l-3 7"></path></svg>';
         
         // Style the icon
@@ -109,6 +113,13 @@ export class FloatingIcon extends Component {
         
         // Initial setup
         this.handleEditorChange();
+
+        // Listen for modal state changes
+        this.uiStateService.on('modal-state-change', (state: UIState) => {
+            if (state.isModalOpen) {
+                this.hideIcon();
+            }
+        });
     }
 
     onunload(): void {
@@ -182,8 +193,8 @@ export class FloatingIcon extends Component {
         this.iconElement.style.top = `${finalTop}px`;
     }
 
-    private showIcon(): void {
-        if (!this.isVisible && this.iconElement) {
+    showIcon(): void {
+        if (!this.isVisible && this.iconElement && !this.uiStateService.getState().isModalOpen) {
             this.isVisible = true;
             this.iconElement.style.opacity = '1';
             this.iconElement.style.transform = 'scale(1)';
@@ -191,7 +202,7 @@ export class FloatingIcon extends Component {
         }
     }
 
-    private hideIcon(): void {
+    hideIcon(): void {
         if (this.isVisible && this.iconElement) {
             this.isVisible = false;
             this.iconElement.style.opacity = '0';
@@ -215,7 +226,8 @@ export class FloatingIcon extends Component {
                 this.currentEditor,
                 selection,
                 this.settings,
-                this.composeOperation
+                this.composeOperation,
+                this.uiStateService,
             ).open();
         }
     }

@@ -3,6 +3,7 @@ import { AIPluginSettings, DEFAULT_SETTINGS } from './types/config';
 import { ConfigService } from './services/config-service';
 import { AIService } from './services/ai-service';
 import { StreamingService } from './services/streaming-service';
+import { UIStateService } from './services/ui-state-service';
 import { SummarizeOperation } from './operations/summarize';
 import { TranslateOperation } from './operations/translate';
 import { KeywordsOperation } from './operations/keywords';
@@ -20,6 +21,7 @@ export class AIPlugin extends Plugin {
 	private configService: ConfigService;
 	private aiService: AIService;
 	private streamingService: StreamingService;
+	private uiStateService: UIStateService;
 	private summarizeOperation: SummarizeOperation;
 	private translateOperation: TranslateOperation;
 	private keywordsOperation: KeywordsOperation;
@@ -62,6 +64,7 @@ export class AIPlugin extends Plugin {
 		this.configService = new ConfigService(this.app, this.settings);
 		this.aiService = new AIService(this.settings);
 		this.streamingService = new StreamingService();
+		this.uiStateService = new UIStateService();
 
 		// Initialize operations
 		this.summarizeOperation = new SummarizeOperation(
@@ -103,19 +106,22 @@ export class AIPlugin extends Plugin {
 			this.keywordsOperation,
 			this.rewriterOperation,
 			this.composeOperation,
-			this.settings
+			this.settings,
+            this.uiStateService,
 		);
 		this.ribbonIconManager = new RibbonIconManager(
 			this.app,
 			this.aiContextMenu,
 			this.composeOperation,
-			this.settings
+			this.settings,
+            this.uiStateService,
 		);
 		this.floatingIcon = new FloatingIcon(
 			this.app,
 			this.aiContextMenu,
 			this.composeOperation,
-			this.settings
+			this.settings,
+			this.uiStateService
 		);
 	}
 
@@ -136,7 +142,8 @@ export class AIPlugin extends Plugin {
 					editor,
 					selection,
 					this.settings,
-					this.composeOperation
+					this.composeOperation,
+					this.uiStateService
 				).open();
 			}
 		});

@@ -3,6 +3,7 @@ import { Editor } from 'obsidian';
 import { AIPluginSettings } from '../types/config';
 import { ComposeOperation } from '../operations/compose';
 
+import { UIStateService } from '../services/ui-state-service';
 export class ComposePromptModal extends Modal {
     private editor: Editor;
     private settings: AIPluginSettings;
@@ -10,6 +11,7 @@ export class ComposePromptModal extends Modal {
     private promptInput: TextAreaComponent;
     private submitButton: ButtonComponent;
     private initialValue: string;
+    private uiStateService: UIStateService;
 
     constructor(
         app: App,
@@ -17,6 +19,7 @@ export class ComposePromptModal extends Modal {
         selectedText: string,
         settings: AIPluginSettings,
         composeOperation: ComposeOperation,
+        uiStateService: UIStateService,
         initialValue: string = ''
     ) {
         super(app);
@@ -24,9 +27,11 @@ export class ComposePromptModal extends Modal {
         this.settings = settings;
         this.composeOperation = composeOperation;
         this.initialValue = selectedText || initialValue;
+        this.uiStateService = uiStateService;
     }
 
     onOpen() {
+        this.uiStateService.setModalState(true);
         const { contentEl, modalEl } = this;
         contentEl.empty();
 
@@ -168,6 +173,7 @@ export class ComposePromptModal extends Modal {
     }
 
     onClose() {
+        this.uiStateService.setModalState(false);
         const { contentEl } = this;
         contentEl.empty();
     }
@@ -186,22 +192,26 @@ export class ComposeSuggestionsModal extends Modal {
     private selectedText: string;
     private suggestions: string[];
     private cursorPos: { line: number; ch: number };
+    private uiStateService: UIStateService;
 
     constructor(
-        app: App, 
-        editor: Editor, 
-        selectedText: string, 
+        app: App,
+        editor: Editor,
+        selectedText: string,
         suggestions: string[],
-        cursorPos: { line: number; ch: number }
+        cursorPos: { line: number; ch: number },
+        uiStateService: UIStateService
     ) {
         super(app);
         this.editor = editor;
         this.selectedText = selectedText;
         this.suggestions = suggestions;
         this.cursorPos = cursorPos;
+        this.uiStateService = uiStateService;
     }
 
     onOpen() {
+        this.uiStateService.setModalState(true);
         const { contentEl } = this;
         contentEl.empty();
 
@@ -308,6 +318,7 @@ export class ComposeSuggestionsModal extends Modal {
     }
 
     onClose() {
+        this.uiStateService.setModalState(false);
         const { contentEl } = this;
         contentEl.empty();
     }

@@ -1,10 +1,9 @@
 import { Editor, Notice } from 'obsidian';
 import { AIPluginSettings } from '../types/config';
-import { ComposeSuggestionsModal } from '../ui/compose-modal';
 import {AIService} from "../services/ai-service";
 import {StreamingService} from "../services/streaming-service";
 import {ConfigService} from "../services/config-service";
-import {ComposeRequest, RewriteRequest} from "../types/requests";
+import {ComposeRequest} from "../types/requests";
 import {TranslateResponse} from "../types/responses";
 import {appendToEndOfDocument} from "../utils/editor-utils";
 
@@ -23,7 +22,7 @@ export class ComposeOperation {
     async execute(
         editor: Editor,
         topic: string,
-        settings: AIPluginSettings,
+        settings: AIPluginSettings
     ): Promise<void> {
         const config = this.configService.getConfig();
 
