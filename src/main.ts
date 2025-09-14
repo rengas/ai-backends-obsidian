@@ -13,6 +13,7 @@ import { AIPluginSettingTab } from './ui/settings-tab';
 import { ComposePromptModal } from './ui/compose-modal';
 import { AIContextMenu } from './ui/ai-context-menu';
 import { RibbonIconManager } from './ui/ribbon-icon';
+import { FloatingIcon } from './ui/floating-icon';
 
 export class AIPlugin extends Plugin {
 	settings: AIPluginSettings;
@@ -27,6 +28,7 @@ export class AIPlugin extends Plugin {
 	private commandsManager: CommandsManager;
 	private aiContextMenu: AIContextMenu;
 	private ribbonIconManager: RibbonIconManager;
+	private floatingIcon: FloatingIcon;
 
 	async onload() {
 		await this.loadSettings();
@@ -48,6 +50,9 @@ export class AIPlugin extends Plugin {
 			this.configService.loadConfig();
 			this.configService.setupConfigWatcher();
 		});
+
+		// Initialize floating icon
+		this.addChild(this.floatingIcon);
 
 		await this.createExampleConfig();
 	}
@@ -78,9 +83,11 @@ export class AIPlugin extends Plugin {
 			this.streamingService,
 			this.configService
 		);
-		this.composeOperation = new ComposeOperation(this.aiService,
-            this.streamingService,
-            this.configService);
+		this.composeOperation = new ComposeOperation(
+			this.aiService,
+			this.streamingService,
+            this.configService
+		);
 
 		this.commandsManager = new CommandsManager(
 			this.summarizeOperation,
@@ -99,6 +106,12 @@ export class AIPlugin extends Plugin {
 			this.settings
 		);
 		this.ribbonIconManager = new RibbonIconManager(
+			this.app,
+			this.aiContextMenu,
+			this.composeOperation,
+			this.settings
+		);
+		this.floatingIcon = new FloatingIcon(
 			this.app,
 			this.aiContextMenu,
 			this.composeOperation,
@@ -152,6 +165,7 @@ export class AIPlugin extends Plugin {
 		this.commandsManager.updateSettings(this.settings);
 		this.aiContextMenu.updateSettings(this.settings);
 		this.ribbonIconManager.updateSettings(this.settings);
+		this.floatingIcon.updateSettings(this.settings);
 
 		// Reload config and reset watcher when settings change
 		await this.configService.loadConfig();
