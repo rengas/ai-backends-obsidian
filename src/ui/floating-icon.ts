@@ -160,37 +160,11 @@ export class FloatingIcon extends Component {
     }
 
     private updateIconPosition(): void {
-        if (!this.currentEditor || !this.iconElement) return;
-        
-        const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-        if (!activeView) return;
-        
-        const editorEl = activeView.containerEl;
-        const rect = editorEl.getBoundingClientRect();
-        
-        // Get cursor position from the editor
-        const cursor = this.currentEditor.getCursor();
-        
-        // Use a fixed line height for more consistent behavior
-        const lineHeight = 24; // Fixed line height in pixels
-        
-        // Calculate the actual position of the cursor line
-        // Add 2 to cursor.line to move the icon two lines below the file name heading
-        const adjustedLine = Math.max(0, cursor.line + 5);
-        const lineTop = adjustedLine * lineHeight;
-        
-        // Position the icon on the left side of the editor, at the same line as the cursor
-        const iconLeft = rect.left + 300; // Fixed position on the left side with 45px offset (moved 25px to the right)
-        const iconTop = rect.top + lineTop + (lineHeight / 2) - 16; // Center vertically with cursor line
-        
-        // Ensure icon stays within editor bounds
-        const minTop = rect.top;
-        const maxTop = rect.bottom - 40; // Account for icon height
-        
-        const finalTop = Math.max(minTop, Math.min(iconTop, maxTop));
-        
-        this.iconElement.style.left = `${iconLeft}px`;
-        this.iconElement.style.top = `${finalTop}px`;
+        if (!this.iconElement) return;
+
+        this.iconElement.style.position = 'fixed';
+        this.iconElement.style.bottom = '45px'; // 20px from the bottom of the window
+        this.iconElement.style.right = '20px';  // 20px from the right of the window
     }
 
     showIcon(): void {
