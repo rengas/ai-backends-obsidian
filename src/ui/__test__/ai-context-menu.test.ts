@@ -1,6 +1,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { App, Menu } from 'obsidian';
+import { UIStateService } from '../../services/ui-state-service';
 
 // Mock Obsidian components
 vi.mock('obsidian', () => {
@@ -44,6 +45,7 @@ describe('AIContextMenu', () => {
     let mockRewriteOperation: RewriteOperation;
     let mockComposeOperation: ComposeOperation;
     let mockSettings: AIPluginSettings;
+    let mockUIStateService: UIStateService;
     let contextMenu: AIContextMenu;
 
     beforeEach(() => {
@@ -83,7 +85,12 @@ describe('AIContextMenu', () => {
         mockSettings = {
             configFilePath: 'config/ai-config.yaml',
             apiUrl: 'http://localhost:3000',
+            apiKey: ""
         };
+        mockUIStateService = {
+            getState: vi.fn(),
+            setModalState: vi.fn(),
+        } as any;
 
         contextMenu = new AIContextMenu(
             mockApp,
@@ -92,7 +99,8 @@ describe('AIContextMenu', () => {
             mockKeywordsOperation,
             mockRewriteOperation,
             mockComposeOperation,
-            mockSettings
+            mockSettings,
+            mockUIStateService
         );
     });
 
@@ -422,4 +430,9 @@ describe('AIContextMenu', () => {
             mockSettings
         );
     });
+
+    it('should have uiStateService property', () => {
+        expect(contextMenu['uiStateService']).toBe(mockUIStateService);
+    });
+
 });
