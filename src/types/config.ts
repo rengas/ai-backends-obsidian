@@ -1,6 +1,6 @@
 export interface AIPluginSettings {
 	apiUrl: string;
-	apiKey: string;
+	apiKey?: string;
 	configFilePath: string;
 }
 

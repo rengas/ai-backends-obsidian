@@ -3,6 +3,7 @@ import { AIPluginSettings, DEFAULT_SETTINGS } from './types/config';
 import { ConfigService } from './services/config-service';
 import { AIService } from './services/ai-service';
 import { StreamingService } from './services/streaming-service';
+import { UIStateService } from './services/ui-state-service';
 import { SummarizeOperation } from './operations/summarize';
 import { TranslateOperation } from './operations/translate';
 import { KeywordsOperation } from './operations/keywords';
@@ -12,12 +13,15 @@ import { CommandsManager } from './ui/commands';
 import { AIPluginSettingTab } from './ui/settings-tab';
 import { ComposePromptModal } from './ui/compose-modal';
 import { AIContextMenu } from './ui/ai-context-menu';
+import { RibbonIconManager } from './ui/ribbon-icon';
+import { FloatingIcon } from './ui/floating-icon';
 
 export class AIPlugin extends Plugin {
 	settings: AIPluginSettings;
 	private configService: ConfigService;
 	private aiService: AIService;
 	private streamingService: StreamingService;
+	private uiStateService: UIStateService;
 	private summarizeOperation: SummarizeOperation;
 	private translateOperation: TranslateOperation;
 	private keywordsOperation: KeywordsOperation;
@@ -25,6 +29,8 @@ export class AIPlugin extends Plugin {
 	private composeOperation: ComposeOperation;
 	private commandsManager: CommandsManager;
 	private aiContextMenu: AIContextMenu;
+	private ribbonIconManager: RibbonIconManager;
+	private floatingIcon: FloatingIcon;
 
 	async onload() {
 		await this.loadSettings();
@@ -32,11 +38,23 @@ export class AIPlugin extends Plugin {
 		await this.registerCommands();
 		this.addSettingTab(new AIPluginSettingTab(this.app, this));
 
+		// Add ribbon icon
+		this.addRibbonIcon(
+			'brain-circuit',
+			'AI Backends',
+			(evt: MouseEvent) => {
+				this.ribbonIconManager.handleRibbonIconClick(evt);
+			}
+		);
+
 		// Delay config loading to ensure vault is ready
 		this.app.workspace.onLayoutReady(() => {
 			this.configService.loadConfig();
 			this.configService.setupConfigWatcher();
 		});
+
+		// Initialize floating icon
+		this.addChild(this.floatingIcon);
 
 		await this.createExampleConfig();
 	}
@@ -46,6 +64,7 @@ export class AIPlugin extends Plugin {
 		this.configService = new ConfigService(this.app, this.settings);
 		this.aiService = new AIService(this.settings);
 		this.streamingService = new StreamingService();
+		this.uiStateService = new UIStateService();
 
 		// Initialize operations
 		this.summarizeOperation = new SummarizeOperation(
@@ -67,9 +86,11 @@ export class AIPlugin extends Plugin {
 			this.streamingService,
 			this.configService
 		);
-		this.composeOperation = new ComposeOperation(this.aiService,
-            this.streamingService,
-            this.configService);
+		this.composeOperation = new ComposeOperation(
+			this.aiService,
+			this.streamingService,
+            this.configService
+		);
 
 		this.commandsManager = new CommandsManager(
 			this.summarizeOperation,
@@ -85,7 +106,22 @@ export class AIPlugin extends Plugin {
 			this.keywordsOperation,
 			this.rewriterOperation,
 			this.composeOperation,
-			this.settings
+			this.settings,
+            this.uiStateService,
+		);
+		this.ribbonIconManager = new RibbonIconManager(
+			this.app,
+			this.aiContextMenu,
+			this.composeOperation,
+			this.settings,
+            this.uiStateService,
+		);
+		this.floatingIcon = new FloatingIcon(
+			this.app,
+			this.aiContextMenu,
+			this.composeOperation,
+			this.settings,
+			this.uiStateService
 		);
 	}
 
@@ -106,7 +142,8 @@ export class AIPlugin extends Plugin {
 					editor,
 					selection,
 					this.settings,
-					this.composeOperation
+					this.composeOperation,
+					this.uiStateService
 				).open();
 			}
 		});
@@ -134,6 +171,8 @@ export class AIPlugin extends Plugin {
 		this.aiService.updateSettings(this.settings);
 		this.commandsManager.updateSettings(this.settings);
 		this.aiContextMenu.updateSettings(this.settings);
+		this.ribbonIconManager.updateSettings(this.settings);
+		this.floatingIcon.updateSettings(this.settings);
 
 		// Reload config and reset watcher when settings change
 		await this.configService.loadConfig();

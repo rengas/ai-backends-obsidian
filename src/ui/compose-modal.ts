@@ -3,6 +3,7 @@ import { Editor } from 'obsidian';
 import { AIPluginSettings } from '../types/config';
 import { ComposeOperation } from '../operations/compose';
 
+import { UIStateService } from '../services/ui-state-service';
 export class ComposePromptModal extends Modal {
     private editor: Editor;
     private settings: AIPluginSettings;
@@ -10,6 +11,7 @@ export class ComposePromptModal extends Modal {
     private promptInput: TextAreaComponent;
     private submitButton: ButtonComponent;
     private initialValue: string;
+    private uiStateService: UIStateService;
 
     constructor(
         app: App,
@@ -17,6 +19,7 @@ export class ComposePromptModal extends Modal {
         selectedText: string,
         settings: AIPluginSettings,
         composeOperation: ComposeOperation,
+        uiStateService: UIStateService,
         initialValue: string = ''
     ) {
         super(app);
@@ -24,11 +27,52 @@ export class ComposePromptModal extends Modal {
         this.settings = settings;
         this.composeOperation = composeOperation;
         this.initialValue = selectedText || initialValue;
+        this.uiStateService = uiStateService;
     }
 
     onOpen() {
-        const { contentEl } = this;
+        this.uiStateService.setModalState(true);
+        const { contentEl, modalEl } = this;
         contentEl.empty();
+
+        // Add animation styles
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInScaleUp {
+                from {
+                    opacity: 0;
+                    transform: scale(0.95);
+                }
+                to {
+                    opacity: 1;
+                    transform: scale(1);
+                }
+            }
+
+            @keyframes fadeOutScaleDown {
+                from {
+                    opacity: 1;
+                    transform: scale(1);
+                }
+                to {
+                    opacity: 0;
+                    transform: scale(0.95);
+                }
+            }
+
+            .modal.compose-modal-opening {
+                animation: fadeInScaleUp 0.2s ease-out forwards;
+            }
+
+            .modal.compose-modal-closing {
+                animation: fadeOutScaleDown 0.2s ease-in forwards;
+            }
+        `;
+        document.head.appendChild(style);
+        requestAnimationFrame(() => {
+            this.modalEl.addClass('compose-modal-opening');
+        });
+
 
         // Create text area directly without Setting wrapper
         const textArea = contentEl.createEl('textarea', {
@@ -129,135 +173,16 @@ export class ComposePromptModal extends Modal {
     }
 
     onClose() {
+        this.uiStateService.setModalState(false);
         const { contentEl } = this;
         contentEl.empty();
     }
-}
 
-export class ComposeSuggestionsModal extends Modal {
-    private editor: Editor;
-    private selectedText: string;
-    private suggestions: string[];
-    private cursorPos: { line: number; ch: number };
-
-    constructor(
-        app: App, 
-        editor: Editor, 
-        selectedText: string, 
-        suggestions: string[],
-        cursorPos: { line: number; ch: number }
-    ) {
-        super(app);
-        this.editor = editor;
-        this.selectedText = selectedText;
-        this.suggestions = suggestions;
-        this.cursorPos = cursorPos;
-    }
-
-    onOpen() {
-        const { contentEl } = this;
-        contentEl.empty();
-
-        contentEl.createEl('h3', { text: 'Choose a suggestion' });
-
-        if (this.suggestions.length === 0) {
-            contentEl.createEl('p', { text: 'No suggestions were generated. Please try again.' });
-            new ButtonComponent(contentEl)
-                .setButtonText('Close')
-                .onClick(() => this.close());
-            return;
-        }
-
-        // Create suggestion containers
-        this.suggestions.forEach((suggestion, index) => {
-            const suggestionContainer = contentEl.createDiv('compose-suggestion');
-            suggestionContainer.style.cssText = `
-                border: 1px solid var(--background-modifier-border);
-                border-radius: 6px;
-                padding: 15px;
-                margin-bottom: 15px;
-                background: var(--background-primary);
-            `;
-
-            // Suggestion header
-            const header = suggestionContainer.createDiv('compose-suggestion-header');
-            header.style.cssText = `
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 10px;
-            `;
-
-            header.createEl('h4', { 
-                text: `Option ${index + 1}`,
-                attr: { style: 'margin: 0;' }
-            });
-
-            // Insert button
-            new ButtonComponent(header)
-                .setButtonText('Insert')
-                .setCta()
-                .onClick(() => this.insertSuggestion(suggestion));
-
-            // Suggestion text
-            const textEl = suggestionContainer.createEl('div', { 
-                text: suggestion,
-                cls: 'compose-suggestion-text'
-            });
-            textEl.style.cssText = `
-                line-height: 1.5;
-                color: var(--text-normal);
-                white-space: pre-wrap;
-            `;
-
-            // Add hover effect
-            suggestionContainer.addEventListener('mouseenter', () => {
-                suggestionContainer.style.background = 'var(--background-secondary)';
-            });
-            suggestionContainer.addEventListener('mouseleave', () => {
-                suggestionContainer.style.background = 'var(--background-primary)';
-            });
-        });
-
-        // Bottom buttons
-        const buttonContainer = contentEl.createDiv('compose-bottom-buttons');
-        buttonContainer.style.cssText = `
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid var(--background-modifier-border);
-        `;
-
-        new ButtonComponent(buttonContainer)
-            .setButtonText('Cancel')
-            .onClick(() => this.close());
-
-        // Generate more button
-        new ButtonComponent(buttonContainer)
-            .setButtonText('Generate More')
-            .onClick(() => {
-                // TODO: Implement regenerate functionality if needed
-                new Notice('Regenerate functionality coming soon');
-            });
-    }
-
-    private insertSuggestion(suggestion: string) {
-        // Replace the selected text with the suggestion
-        if (this.selectedText) {
-            this.editor.replaceSelection(suggestion);
-        } else {
-            // If no text was selected, insert at cursor position
-            this.editor.setCursor(this.cursorPos);
-            this.editor.replaceRange(suggestion, this.cursorPos);
-        }
-
-        new Notice('Text inserted successfully');
-        this.close();
-    }
-
-    onClose() {
-        const { contentEl } = this;
-        contentEl.empty();
+    close() {
+        this.modalEl.removeClass('compose-modal-opening');
+        this.modalEl.addClass('compose-modal-closing');
+        setTimeout(() => {
+            super.close();
+        }, 200); // Match animation duration
     }
 }

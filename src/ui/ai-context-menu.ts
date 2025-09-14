@@ -8,6 +8,7 @@ import { ComposePromptModal } from './compose-modal';
 import { AIPluginSettings } from '../types/config';
 import { Language, POPULAR_LANGUAGES } from '../types/languages';
 import { TONES } from '../types/tones';
+import { UIStateService } from '../services/ui-state-service';
 
 export class AIContextMenu extends Component {
     private app: App;
@@ -19,6 +20,7 @@ export class AIContextMenu extends Component {
     private settings: AIPluginSettings;
     private popularLanguages: Language[];
     private tones: string[] = TONES;
+    private uiStateService: UIStateService;
 
     constructor(
         app: App,
@@ -27,7 +29,8 @@ export class AIContextMenu extends Component {
         keywordsOperation: KeywordsOperation,
         rewriteOperation: RewriteOperation,
         composeOperation: ComposeOperation,
-        settings: AIPluginSettings
+        settings: AIPluginSettings,
+        uiStateService: UIStateService
     ) {
         super();
         this.app = app;
@@ -38,6 +41,7 @@ export class AIContextMenu extends Component {
         this.composeOperation = composeOperation;
         this.settings = settings;
         this.popularLanguages = [...POPULAR_LANGUAGES];
+        this.uiStateService = uiStateService;
     }
 
     updateSettings(settings: AIPluginSettings): void {
@@ -67,7 +71,8 @@ export class AIContextMenu extends Component {
                         editor,
                         selection,
                         this.settings,
-                        this.composeOperation
+                        this.composeOperation,
+                        this.uiStateService
                     ).open();
                 });
         });
