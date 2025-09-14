@@ -27,8 +27,47 @@ export class ComposePromptModal extends Modal {
     }
 
     onOpen() {
-        const { contentEl } = this;
+        const { contentEl, modalEl } = this;
         contentEl.empty();
+
+        // Add animation styles
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInScaleUp {
+                from {
+                    opacity: 0;
+                    transform: scale(0.95);
+                }
+                to {
+                    opacity: 1;
+                    transform: scale(1);
+                }
+            }
+
+            @keyframes fadeOutScaleDown {
+                from {
+                    opacity: 1;
+                    transform: scale(1);
+                }
+                to {
+                    opacity: 0;
+                    transform: scale(0.95);
+                }
+            }
+
+            .modal.compose-modal-opening {
+                animation: fadeInScaleUp 0.2s ease-out forwards;
+            }
+
+            .modal.compose-modal-closing {
+                animation: fadeOutScaleDown 0.2s ease-in forwards;
+            }
+        `;
+        document.head.appendChild(style);
+        requestAnimationFrame(() => {
+            this.modalEl.addClass('compose-modal-opening');
+        });
+
 
         // Create text area directly without Setting wrapper
         const textArea = contentEl.createEl('textarea', {
@@ -132,6 +171,14 @@ export class ComposePromptModal extends Modal {
         const { contentEl } = this;
         contentEl.empty();
     }
+
+    close() {
+        this.modalEl.removeClass('compose-modal-opening');
+        this.modalEl.addClass('compose-modal-closing');
+        setTimeout(() => {
+            super.close();
+        }, 200); // Match animation duration
+    }
 }
 
 export class ComposeSuggestionsModal extends Modal {
@@ -157,6 +204,10 @@ export class ComposeSuggestionsModal extends Modal {
     onOpen() {
         const { contentEl } = this;
         contentEl.empty();
+
+        requestAnimationFrame(() => {
+            this.modalEl.addClass('compose-modal-opening');
+        });
 
         contentEl.createEl('h3', { text: 'Choose a suggestion' });
 
@@ -188,7 +239,7 @@ export class ComposeSuggestionsModal extends Modal {
                 margin-bottom: 10px;
             `;
 
-            header.createEl('h4', { 
+            header.createEl('h4', {
                 text: `Option ${index + 1}`,
                 attr: { style: 'margin: 0;' }
             });
@@ -200,7 +251,7 @@ export class ComposeSuggestionsModal extends Modal {
                 .onClick(() => this.insertSuggestion(suggestion));
 
             // Suggestion text
-            const textEl = suggestionContainer.createEl('div', { 
+            const textEl = suggestionContainer.createEl('div', {
                 text: suggestion,
                 cls: 'compose-suggestion-text'
             });
@@ -259,5 +310,13 @@ export class ComposeSuggestionsModal extends Modal {
     onClose() {
         const { contentEl } = this;
         contentEl.empty();
+    }
+
+    close() {
+        this.modalEl.removeClass('compose-modal-opening');
+        this.modalEl.addClass('compose-modal-closing');
+        setTimeout(() => {
+            super.close();
+        }, 200); // Match animation duration
     }
 }
