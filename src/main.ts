@@ -199,32 +199,33 @@ export class AIPlugin extends Plugin {
 			const fileExists = await vault.adapter.exists(configFilePath);
 			if (!fileExists) {
 				const defaultConfig = `
-summarize:
-		provider: "ollama"
-		model: "gemma3:4b"
-		temperature: 0.3
-		stream: true
-		maxLength: 100
-keywords:
-		provider: "ollama"
-		model: "mistrallite:latest"
-		temperature: 0.3
-		stream: false
-		maxKeywords: 500
-translate:
-		provider: "ollama"
-		model: "gemma3:4b"
-		temperature: 0.1
-		stream: true
-		defaultTargetLanguage: "ta"
-rewrite:
-		provider: "ollama"
-		model: "gemma3:4b"
-		stream: true
-compose:
-		provider: "ollama"
-		model: "gemma3:4b"
-		maxLength: 50
+summarize:  
+  provider: "ollama"  
+  model: "gemma3:270m"  
+  temperature: 0.3  
+  stream: true  
+  maxLength: 100  
+keywords:  
+  provider: "ollama"  
+  model: "gemma3:270m"  
+  temperature: 0.3  
+  stream: false  
+  maxKeywords: 500  
+translate:    
+  provider: "ollama"    
+  model: "gemma3:270m"  
+  temperature: 0.1    
+  stream: true    
+  defaultTargetLanguage: "ta"  
+rewrite:    
+  provider: "ollama"    
+  model: "gemma3:270m"  
+  stream: true  
+compose:    
+  provider: "ollama" 
+  stream: true   
+  model: "gemma3:270m"    
+  maxLength: 50		maxLength: 50
 `.trim();
 				await vault.create(configFilePath, defaultConfig);
 			}
