@@ -225,7 +225,7 @@ compose:
   provider: "ollama" 
   stream: true   
   model: "gemma3:270m"    
-  maxLength: 50		maxLength: 50
+  maxLength: 50
 `.trim();
 				await vault.create(configFilePath, defaultConfig);
 			}
