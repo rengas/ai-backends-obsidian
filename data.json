@@ -1,6 +1,6 @@
 {
-  "apiUrl": "https://ai-backends-test.fly.dev",
-  "apiKey": "WQ+dYpGzcs+lo3JaPvEoPYxPFPKrUHe3hu9JtfI94Pk=",
+  "apiUrl": "http://localhost:3000",
+  "apiKey": "",
   "configFilePath": "ai-backends/config.example.md",
   "configFolderPath": "ai-backends/config.yaml"
 }
