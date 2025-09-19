@@ -3038,7 +3038,7 @@ var SummarizeOperation = class {
       return;
     }
     if (!settings.apiUrl) {
-      new import_obsidian4.Notice("Please set the API URL in settings");
+      new import_obsidian4.Notice("Please configure the summarize settings in the plugin settings first");
       return;
     }
     try {
@@ -3075,7 +3075,7 @@ var SummarizeOperation = class {
       }
     } catch (error) {
       console.error("Error summarizing text:", error);
-      new import_obsidian4.Notice("Error summarizing text. Please check your API settings.");
+      new import_obsidian4.Notice("Please configure the summarize settings in the plugin settings first");
     }
   }
 };
@@ -3094,12 +3094,12 @@ var TranslateOperation = class {
       return;
     }
     if (!settings.apiUrl) {
-      new import_obsidian5.Notice("Please set the API URL in settings");
+      new import_obsidian5.Notice("Please configure the translate settings in the plugin settings first");
       return;
     }
     const targetLanguage = customTargetLanguage || settings.translate.defaultTargetLanguage;
     if (!targetLanguage) {
-      new import_obsidian5.Notice("Please specify a target language in the plugin settings or provide one");
+      new import_obsidian5.Notice("Please configure the translate settings in the plugin settings first");
       return;
     }
     try {
@@ -3140,7 +3140,7 @@ ${result.translation}`);
       }
     } catch (error) {
       console.error("Error translating text:", error);
-      new import_obsidian5.Notice("Error translating text. Please check your API settings.");
+      new import_obsidian5.Notice("Please configure the translate settings in the plugin settings first");
     }
   }
 };
@@ -3158,7 +3158,7 @@ var KeywordsOperation = class {
       return;
     }
     if (!settings.apiUrl) {
-      new import_obsidian6.Notice("Please set the API URL in settings");
+      new import_obsidian6.Notice("Please configure the keywords settings in the plugin settings first");
       return;
     }
     try {
@@ -3186,7 +3186,7 @@ ${keywordsList}`, cursor);
       new import_obsidian6.Notice("Keywords extracted successfully");
     } catch (error) {
       console.error("Error extracting keywords:", error);
-      new import_obsidian6.Notice("Error extracting keywords. Please check your API settings.");
+      new import_obsidian6.Notice("Please configure the keywords settings in the plugin settings first");
     }
   }
 };
@@ -3205,7 +3205,7 @@ var RewriteOperation = class {
       return;
     }
     if (!settings.apiUrl) {
-      new import_obsidian7.Notice("Please set the API URL in settings");
+      new import_obsidian7.Notice("Please configure the rewrite settings in the plugin settings first");
       return;
     }
     try {
@@ -3248,7 +3248,7 @@ ${output}`);
       }
     } catch (error) {
       console.error("Error applying rewrite:", error);
-      new import_obsidian7.Notice("Error applying action. Please check your API settings.");
+      new import_obsidian7.Notice("Please configure the rewrite settings in the plugin settings first");
     }
   }
   // Convenience methods for different rewrite operations
@@ -3287,7 +3287,7 @@ var ComposeOperation = class {
       return;
     }
     if (!settings.apiUrl) {
-      new import_obsidian8.Notice("Please set the API URL in settings");
+      new import_obsidian8.Notice("Please configure the compose settings in the plugin settings first");
       return;
     }
     try {
@@ -3328,7 +3328,7 @@ var ComposeOperation = class {
       }
     } catch (error) {
       console.error("Compose operation error:", error);
-      new import_obsidian8.Notice("Error applying action. Please check your API settings.");
+      new import_obsidian8.Notice("Please configure the compose settings in the plugin settings first");
     }
   }
 };
