@@ -93,12 +93,18 @@ describe('RewriteOperation', () => {
     };
     (mockAIService.rewrite as any).mockResolvedValue(mockResponse);
     // Update the settings to enable streaming
-    mockSettings.rewrite = {
-      ...mockSettings.rewrite,
-      stream: true,
-    };
 
-    await rewriteOperation.execute(mockEditor, 'text', 'instruction', 'tone', 'header', mockSettings);
+      mockSettings.rewrite = {
+          ...(mockSettings.rewrite || {
+              provider: 'test-provider',
+              model: 'test-model',
+              temperature: 0.7,
+             stream: false,
+          }),
+          stream: true,
+      };
+
+      await rewriteOperation.execute(mockEditor, 'text', 'instruction', 'tone', 'header', mockSettings);
 
     expect(mockAIService.rewrite).toHaveBeenCalled();
     expect(mockStreamingService.handleStreamingResponse).toHaveBeenCalled();

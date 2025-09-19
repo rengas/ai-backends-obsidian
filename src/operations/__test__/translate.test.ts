@@ -105,10 +105,16 @@ describe('TranslateOperation', () => {
     };
     (mockAIService.translate as any).mockResolvedValue(mockResponse);
     // Update the settings to enable streaming
-    mockSettings.translate = {
-      ...mockSettings.translate,
-      stream: true,
-    };
+      mockSettings.translate = {
+          ...(mockSettings.translate || {
+              provider: 'test-provider',
+              model: 'test-model',
+              temperature: 0.7,
+              stream: false,
+              defaultTargetLanguage: "en",
+          }),
+          stream: true,
+      };
 
     await translateOperation.execute(mockEditor, 'test text', mockSettings);
 

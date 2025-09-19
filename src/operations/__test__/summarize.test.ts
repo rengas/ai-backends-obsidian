@@ -113,12 +113,19 @@ describe('SummarizeOperation', () => {
     };
     (mockAIService.summarize as any).mockResolvedValue(mockResponse);
     // Update the settings to enable streaming
-    mockSettings.summarize = {
-      ...mockSettings.summarize,
-      stream: true,
-    };
+      mockSettings.summarize = {
+          ...(mockSettings.summarize || {
+              provider: 'test-provider',
+              model: 'test-model',
+              temperature: 0.7,
+              stream: false,
+              maxLength: 150,
+          }),
+          stream: true,
+      };
 
-    await summarizeOperation.execute(mockEditor, 'test text', mockSettings);
+
+      await summarizeOperation.execute(mockEditor, 'test text', mockSettings);
 
     expect(mockAIService.summarize).toHaveBeenCalled();
     expect(mockStreamingService.handleStreamingResponse).toHaveBeenCalled();

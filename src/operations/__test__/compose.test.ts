@@ -96,9 +96,14 @@ describe('ComposeOperation', () => {
       body: new ReadableStream(),
     };
     (mockAIService.compose as any).mockResolvedValue(mockResponse);
-    // Update the settings to enable streaming
+
     mockSettings.compose = {
-      ...mockSettings.compose,
+      ...(mockSettings.compose || {
+        provider: 'test-provider',
+        model: 'test-model',
+        temperature: 0.7,
+        maxLength: 500,
+      }),
       stream: true,
     };
 
