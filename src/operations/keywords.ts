@@ -21,7 +21,7 @@ export class KeywordsOperation {
 		}
 
 		if (!settings.apiUrl) {
-			new Notice('Please set the API URL in settings');
+			new Notice('Please configure the keywords settings in the plugin settings first');
 			return;
 		}
 
@@ -51,7 +51,7 @@ export class KeywordsOperation {
 			new Notice('Keywords extracted successfully');
 		} catch (error) {
 			console.error('Error extracting keywords:', error);
-			new Notice('Error extracting keywords. Please check your API settings.');
+			new Notice('Please configure the keywords settings in the plugin settings first');
 		}
 	}
 }

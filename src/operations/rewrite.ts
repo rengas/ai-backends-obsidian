@@ -25,7 +25,7 @@ export class RewriteOperation {
 		}
 
 		if (!settings.apiUrl) {
-			new Notice('Please set the API URL in settings');
+			new Notice('Please configure the rewrite settings in the plugin settings first');
 			return;
 		}
 		try {
@@ -65,7 +65,7 @@ export class RewriteOperation {
 			}
 		} catch (error) {
 			console.error('Error applying rewrite:', error);
-			new Notice('Error applying action. Please check your API settings.');
+			new Notice('Please configure the rewrite settings in the plugin settings first');
 		}
 	}
 

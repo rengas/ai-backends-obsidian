@@ -36,6 +36,13 @@ describe('KeywordsOperation', () => {
       mockSettings = {
           apiUrl: 'https://api.example.com',
           configFilePath: '',
+          keywords: {
+            provider: 'test-provider',
+            model: 'test-model',
+            temperature: 0.5,
+            stream: false,
+            maxKeywords: 5,
+          },
       };
 
     keywordsOperation = new KeywordsOperation(mockAIService, mockConfigService);
@@ -54,13 +61,13 @@ describe('KeywordsOperation', () => {
   it('should show notice if config is missing', async () => {
     (mockConfigService.getConfig as any).mockReturnValue(null);
     await keywordsOperation.execute(mockEditor, 'test text', mockSettings);
-    expect(Notice).toHaveBeenCalledWith('Please configure the keywords settings in the YAML file first');
+    expect(Notice).toHaveBeenCalledWith('Please configure the keywords settings in the plugin settings first');
   });
 
   it('should show notice if API URL is missing', async () => {
     mockSettings.apiUrl = '';
     await keywordsOperation.execute(mockEditor, 'test text', mockSettings);
-    expect(Notice).toHaveBeenCalledWith('Please set the API URL in settings');
+    expect(Notice).toHaveBeenCalledWith('Please configure the keywords settings in the plugin settings first');
   });
 
   it('should extract and display keywords', async () => {
@@ -82,7 +89,7 @@ describe('KeywordsOperation', () => {
 
     await keywordsOperation.execute(mockEditor, 'test text', mockSettings);
 
-    expect(Notice).toHaveBeenCalledWith('Error extracting keywords. Please check your API settings.');
+    expect(Notice).toHaveBeenCalledWith('Please configure the keywords settings in the plugin settings first');
     consoleErrorSpy.mockRestore();
   });
 

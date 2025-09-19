@@ -30,7 +30,7 @@ export class ComposeOperation {
         }
 
         if (!settings.apiUrl) {
-            new Notice('Please set the API URL in settings');
+            new Notice('Please configure the compose settings in the plugin settings first');
             return;
         }
 
@@ -69,7 +69,7 @@ export class ComposeOperation {
             }
         } catch (error) {
             console.error('Compose operation error:', error);
-            new Notice('Error applying action. Please check your API settings.');
+            new Notice('Please configure the compose settings in the plugin settings first');
 
         }
     }

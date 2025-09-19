@@ -25,7 +25,7 @@ export class SummarizeOperation {
 		}
 
 		if (!settings.apiUrl) {
-			new Notice('Please set the API URL in settings');
+			new Notice('Please configure the summarize settings in the plugin settings first');
 			return;
 		}
 
@@ -65,7 +65,7 @@ export class SummarizeOperation {
 			}
 		} catch (error) {
 			console.error('Error summarizing text:', error);
-			new Notice('Error summarizing text. Please check your API settings.');
+			new Notice('Please configure the summarize settings in the plugin settings first');
 		}
 	}
 }

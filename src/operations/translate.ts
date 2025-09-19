@@ -25,7 +25,7 @@ export class TranslateOperation {
 		}
 
 		if (!settings.apiUrl) {
-			new Notice('Please set the API URL in settings');
+			new Notice('Please configure the translate settings in the plugin settings first');
 			return;
 		}
 
@@ -33,7 +33,7 @@ export class TranslateOperation {
 		const targetLanguage = customTargetLanguage || settings.translate.defaultTargetLanguage;
 
 		if (!targetLanguage) {
-			new Notice('Please specify a target language in the plugin settings or provide one');
+			new Notice('Please configure the translate settings in the plugin settings first');
 			return;
 		}
 
@@ -73,7 +73,7 @@ export class TranslateOperation {
 			}
 		} catch (error) {
 			console.error('Error translating text:', error);
-			new Notice('Error translating text. Please check your API settings.');
+			new Notice('Please configure the translate settings in the plugin settings first');
 		}
 	}
 }

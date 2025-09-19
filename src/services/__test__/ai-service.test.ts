@@ -14,7 +14,41 @@ describe('AIService', () => {
 		mockSettings = {
 			apiUrl: 'https://api.example.com',
 			apiKey: 'test-api-key',
-			configFilePath: 'config/ai-config.yaml'
+			configFilePath: 'config/ai-config.yaml',
+			summarize: {
+				provider: 'ollama',
+				model: 'gemma3:4b',
+				temperature: 0.3,
+				stream: true,
+				maxLength: 100
+			},
+			keywords: {
+				provider: 'ollama',
+				model: 'gemma3:4b',
+				temperature: 0.3,
+				stream: false,
+				maxKeywords: 500
+			},
+			translate: {
+				provider: 'ollama',
+				model: 'gemma3:4b',
+				temperature: 0.1,
+				stream: true,
+				defaultTargetLanguage: 'en'
+			},
+			rewrite: {
+				provider: 'ollama',
+				model: 'gemma3:4b',
+				temperature: 0.3,
+				stream: true
+			},
+			compose: {
+				provider: 'ollama',
+				model: 'gemma3:4b',
+				temperature: 0.3,
+				stream: true,
+				maxLength: 50
+			}
 		};
 		aiService = new AIService(mockSettings);
 		mockFetch.mockClear();
@@ -260,7 +294,41 @@ describe('AIService', () => {
             const customSettings = {
                 apiUrl: 'https://custom-api.example.com/api',
                 apiKey: 'custom-api-key',
-                configFilePath: 'config/custom-config.yaml'
+                configFilePath: 'config/custom-config.yaml',
+                summarize: {
+                    provider: 'ollama',
+                    model: 'gemma3:4b',
+                    temperature: 0.3,
+                    stream: true,
+                    maxLength: 100
+                },
+                keywords: {
+                    provider: 'ollama',
+                    model: 'gemma3:4b',
+                    temperature: 0.3,
+                    stream: false,
+                    maxKeywords: 500
+                },
+                translate: {
+                    provider: 'ollama',
+                    model: 'gemma3:4b',
+                    temperature: 0.1,
+                    stream: true,
+                    defaultTargetLanguage: 'en'
+                },
+                rewrite: {
+                    provider: 'ollama',
+                    model: 'gemma3:4b',
+                    temperature: 0.3,
+                    stream: true
+                },
+                compose: {
+                    provider: 'ollama',
+                    model: 'gemma3:4b',
+                    temperature: 0.3,
+                    stream: true,
+                    maxLength: 50
+                }
             };
             const customAiService = new AIService(customSettings);
 

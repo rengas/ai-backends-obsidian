@@ -90,7 +90,7 @@ describe('SummarizeOperation', () => {
   it('should show notice if API URL is missing', async () => {
     mockSettings.apiUrl = '';
     await summarizeOperation.execute(mockEditor, 'test text', mockSettings);
-    expect(Notice).toHaveBeenCalledWith('Please set the API URL in settings');
+    expect(Notice).toHaveBeenCalledWith('Please configure the summarize settings in the plugin settings first');
   });
 
   it('should handle non-streaming response', async () => {
@@ -112,11 +112,11 @@ describe('SummarizeOperation', () => {
       body: new ReadableStream(),
     };
     (mockAIService.summarize as any).mockResolvedValue(mockResponse);
-    (mockConfigService.getConfig as any).mockReturnValue({
-      summarize: {
-        stream: true,
-      },
-    });
+    // Update the settings to enable streaming
+    mockSettings.summarize = {
+      ...mockSettings.summarize,
+      stream: true,
+    };
 
     await summarizeOperation.execute(mockEditor, 'test text', mockSettings);
 
@@ -130,7 +130,7 @@ describe('SummarizeOperation', () => {
 
     await summarizeOperation.execute(mockEditor, 'test text', mockSettings);
 
-    expect(Notice).toHaveBeenCalledWith('Error summarizing text. Please check your API settings.');
+    expect(Notice).toHaveBeenCalledWith('Please configure the summarize settings in the plugin settings first');
     consoleErrorSpy.mockRestore();
   });
 
