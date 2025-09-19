@@ -14,7 +14,7 @@
     "maxLength": 100
   },
   "keywords": {
-    "provider": "ollama",
+    "provider": "anthropic",
     "model": "mistrallite:latest",
     "temperature": 0.3,
     "stream": false,
@@ -28,17 +28,17 @@
     "defaultTargetLanguage": "en"
   },
   "rewrite": {
-    "provider": "anthropic",
+    "provider": "ollama",
     "model": "gemma3:4b",
     "temperature": 0.3,
     "stream": true
   },
   "compose": {
-    "provider": "anthropic",
+    "provider": "ollama",
     "model": "gemma3:4b",
     "temperature": 0.3,
     "stream": true,
-    "maxLength": 50
+    "maxLength": 1000
   },
   "configFolderPath": "ai-backends/config.yaml"
 }
