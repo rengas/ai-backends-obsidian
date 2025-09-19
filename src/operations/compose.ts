@@ -24,10 +24,8 @@ export class ComposeOperation {
         topic: string,
         settings: AIPluginSettings
     ): Promise<void> {
-        const config = this.configService.getConfig();
-
-        if (!config || !config.compose) {
-            new Notice('Please configure the compose settings in the YAML file first');
+        if (!settings.compose) {
+            new Notice('Please configure the compose settings in the plugin settings first');
             return;
         }
 
@@ -40,20 +38,20 @@ export class ComposeOperation {
             const requestBody: ComposeRequest = {
                 payload: {
                     topic: topic,
-                    maxLength:config.compose?.maxLength || 200,
+                    maxLength: settings.compose?.maxLength || 200,
                 },
                 config: {
-                    provider: config.compose.provider,
-                    model: config.compose.model,
-                    temperature: config.compose.temperature,
-                    stream: config.compose.stream
+                    provider: settings.compose.provider,
+                    model: settings.compose.model,
+                    temperature: settings.compose.temperature,
+                    stream: settings.compose.stream
                 }
             };
             const response = await this.aiService.compose(requestBody);
 
             // Check content type to determine if it's a streaming response
             const contentType = response.headers.get('content-type') || '';
-            const isStreaming = config.compose.stream &&
+            const isStreaming = settings.compose.stream &&
                 (contentType.includes('text/event-stream') || contentType.includes('application/x-ndjson') || response.body);
 
             if (isStreaming && response.body) {

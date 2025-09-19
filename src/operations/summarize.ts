@@ -19,10 +19,8 @@ export class SummarizeOperation {
 	}
 
 	async execute(editor: Editor, text: string, settings: AIPluginSettings): Promise<void> {
-		const config = this.configService.getConfig();
-
-		if (!config || !config.summarize) {
-			new Notice('Please configure the summarize settings in the YAML file first');
+		if (!settings.summarize) {
+			new Notice('Please configure the summarize settings in the plugin settings first');
 			return;
 		}
 
@@ -35,13 +33,13 @@ export class SummarizeOperation {
 			const requestBody: SummarizeRequest = {
 				payload: {
 					text: text,
-					maxLength: config.summarize.maxLength || 200
+					maxLength: settings.summarize.maxLength || 200
 				},
 				config: {
-					provider: config.summarize.provider,
-					model: config.summarize.model,
-					temperature: config.summarize.temperature,
-					stream: config.summarize.stream
+					provider: settings.summarize.provider,
+					model: settings.summarize.model,
+					temperature: settings.summarize.temperature,
+					stream: settings.summarize.stream
 				}
 			};
 
@@ -49,14 +47,14 @@ export class SummarizeOperation {
 
 			// Check content type to determine if it's a streaming response
 			const contentType = response.headers.get('content-type') || '';
-			const isStreaming = config.summarize.stream &&
+			const isStreaming = settings.summarize.stream &&
 				(contentType.includes('text/event-stream') || contentType.includes('application/x-ndjson') || response.body);
 
 			if (isStreaming && response.body) {
 				await this.streamingService.handleStreamingResponse(
-					response, 
-					editor, 
-					'\n\n**Summary:**\n\n', 
+					response,
+					editor,
+					'\n\n**Summary:**\n\n',
 					'Text summarized successfully'
 				);
 			} else {

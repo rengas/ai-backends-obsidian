@@ -41,25 +41,50 @@ describe('SummarizeOperation', () => {
       mockSettings = {
           apiUrl: 'https://api.example.com',
           configFilePath: '',
+          summarize: {
+              provider: 'test-provider',
+              model: 'test-model',
+              temperature: 0.7,
+              stream: false,
+              maxLength: 150,
+          },
+          keywords: {
+              provider: 'ollama',
+              model: 'gemma3:4b',
+              temperature: 0.3,
+              stream: false,
+              maxKeywords: 500
+          },
+          translate: {
+              provider: 'ollama',
+              model: 'gemma3:4b',
+              temperature: 0.1,
+              stream: true,
+              defaultTargetLanguage: 'en'
+          },
+          rewrite: {
+              provider: 'ollama',
+              model: 'gemma3:4b',
+              temperature: 0.3,
+              stream: true
+          },
+          compose: {
+              provider: 'ollama',
+              model: 'gemma3:4b',
+              temperature: 0.3,
+              stream: true,
+              maxLength: 50
+          }
       };
 
     summarizeOperation = new SummarizeOperation(mockAIService, mockStreamingService, mockConfigService);
-
-    (mockConfigService.getConfig as any).mockReturnValue({
-      summarize: {
-        provider: 'test-provider',
-        model: 'test-model',
-        temperature: 0.7,
-        stream: false,
-        maxLength: 150,
-      },
-    });
   });
 
-  it('should show notice if config is missing', async () => {
-    (mockConfigService.getConfig as any).mockReturnValue(null);
-    await summarizeOperation.execute(mockEditor, 'test text', mockSettings);
-    expect(Notice).toHaveBeenCalledWith('Please configure the summarize settings in the YAML file first');
+  it('should show notice if summarize settings are missing', async () => {
+    const settingsWithoutSummarize = { ...mockSettings };
+    delete (settingsWithoutSummarize as any).summarize;
+    await summarizeOperation.execute(mockEditor, 'test text', settingsWithoutSummarize);
+    expect(Notice).toHaveBeenCalledWith('Please configure the summarize settings in the plugin settings first');
   });
 
   it('should show notice if API URL is missing', async () => {

@@ -15,10 +15,8 @@ export class KeywordsOperation {
 	}
 
 	async execute(editor: Editor, text: string, settings: AIPluginSettings): Promise<void> {
-		const config = this.configService.getConfig();
-
-		if (!config || !config.keywords) {
-			new Notice('Please configure the keywords settings in the YAML file first');
+		if (!settings.keywords) {
+			new Notice('Please configure the keywords settings in the plugin settings first');
 			return;
 		}
 
@@ -31,13 +29,13 @@ export class KeywordsOperation {
 			const requestBody: KeywordsRequest = {
 				payload: {
 					text: text,
-					maxKeywords: config.keywords.maxKeywords || 10,
+					maxKeywords: settings.keywords.maxKeywords || 10,
 				},
 				config: {
-					provider: config.keywords.provider,
-					model: config.keywords.model,
-					temperature: config.keywords.temperature || 0.3,
-					stream: config.keywords.stream
+					provider: settings.keywords.provider,
+					model: settings.keywords.model,
+					temperature: settings.keywords.temperature || 0.3,
+					stream: settings.keywords.stream
 				}
 			};
 
