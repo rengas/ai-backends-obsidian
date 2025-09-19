@@ -41,6 +41,12 @@ describe('RewriteOperation', () => {
       mockSettings = {
           apiUrl: 'https://api.example.com',
           configFilePath: '',
+          rewrite: {
+            provider: 'test-provider',
+            model: 'test-model',
+            temperature: 0.7,
+            stream: false,
+          },
       };
 
     rewriteOperation = new RewriteOperation(mockAIService, mockStreamingService, mockConfigService);
@@ -58,13 +64,13 @@ describe('RewriteOperation', () => {
   it('should show notice if config is missing', async () => {
     (mockConfigService.getConfig as any).mockReturnValue(null);
     await rewriteOperation.execute(mockEditor, 'text', 'instruction', 'tone', 'header', mockSettings);
-    expect(Notice).toHaveBeenCalledWith('Please configure the rewrite settings in the YAML file first');
+    expect(Notice).toHaveBeenCalledWith('Please configure the rewrite settings in the plugin settings first');
   });
 
   it('should show notice if API URL is missing', async () => {
     mockSettings.apiUrl = '';
     await rewriteOperation.execute(mockEditor, 'text', 'instruction', 'tone', 'header', mockSettings);
-    expect(Notice).toHaveBeenCalledWith('Please set the API URL in settings');
+    expect(Notice).toHaveBeenCalledWith('Please configure the rewrite settings in the plugin settings first');
   });
 
   it('should handle non-streaming response', async () => {
@@ -86,13 +92,19 @@ describe('RewriteOperation', () => {
       body: new ReadableStream(),
     };
     (mockAIService.rewrite as any).mockResolvedValue(mockResponse);
-    (mockConfigService.getConfig as any).mockReturnValue({
-      rewrite: {
-        stream: true,
-      },
-    });
+    // Update the settings to enable streaming
 
-    await rewriteOperation.execute(mockEditor, 'text', 'instruction', 'tone', 'header', mockSettings);
+      mockSettings.rewrite = {
+          ...(mockSettings.rewrite || {
+              provider: 'test-provider',
+              model: 'test-model',
+              temperature: 0.7,
+             stream: false,
+          }),
+          stream: true,
+      };
+
+      await rewriteOperation.execute(mockEditor, 'text', 'instruction', 'tone', 'header', mockSettings);
 
     expect(mockAIService.rewrite).toHaveBeenCalled();
     expect(mockStreamingService.handleStreamingResponse).toHaveBeenCalled();
@@ -104,7 +116,7 @@ describe('RewriteOperation', () => {
 
     await rewriteOperation.execute(mockEditor, 'text', 'instruction', 'tone', 'header', mockSettings);
 
-    expect(Notice).toHaveBeenCalledWith('Error applying action. Please check your API settings.');
+    expect(Notice).toHaveBeenCalledWith('Please configure the rewrite settings in the plugin settings first');
     consoleErrorSpy.mockRestore();
   });
 

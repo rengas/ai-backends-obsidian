@@ -41,6 +41,13 @@ describe('TranslateOperation', () => {
       mockSettings = {
           apiUrl: 'https://api.example.com',
           configFilePath: '',
+          translate: {
+            provider: 'test-provider',
+            model: 'test-model',
+            temperature: 0.7,
+            stream: false,
+            defaultTargetLanguage: 'Spanish',
+          },
       };
 
     translateOperation = new TranslateOperation(mockAIService, mockStreamingService, mockConfigService);
@@ -59,13 +66,13 @@ describe('TranslateOperation', () => {
   it('should show notice if config is missing', async () => {
     (mockConfigService.getConfig as any).mockReturnValue(null);
     await translateOperation.execute(mockEditor, 'test text', mockSettings);
-    expect(Notice).toHaveBeenCalledWith('Please configure the translate settings in the YAML file first');
+    expect(Notice).toHaveBeenCalledWith('Please configure the translate settings in the plugin settings first');
   });
 
   it('should show notice if API URL is missing', async () => {
     mockSettings.apiUrl = '';
     await translateOperation.execute(mockEditor, 'test text', mockSettings);
-    expect(Notice).toHaveBeenCalledWith('Please set the API URL in settings');
+    expect(Notice).toHaveBeenCalledWith('Please configure the translate settings in the plugin settings first');
   });
 
   it('should show notice if target language is missing', async () => {
@@ -75,7 +82,7 @@ describe('TranslateOperation', () => {
       },
     });
     await translateOperation.execute(mockEditor, 'test text', mockSettings);
-    expect(Notice).toHaveBeenCalledWith('Please specify a target language in the config file or provide one');
+    expect(Notice).toHaveBeenCalledWith('Please configure the translate settings in the plugin settings first');
   });
 
   it('should handle non-streaming response', async () => {
@@ -97,12 +104,17 @@ describe('TranslateOperation', () => {
       body: new ReadableStream(),
     };
     (mockAIService.translate as any).mockResolvedValue(mockResponse);
-    (mockConfigService.getConfig as any).mockReturnValue({
-      translate: {
-        stream: true,
-        defaultTargetLanguage: 'Spanish',
-      },
-    });
+    // Update the settings to enable streaming
+      mockSettings.translate = {
+          ...(mockSettings.translate || {
+              provider: 'test-provider',
+              model: 'test-model',
+              temperature: 0.7,
+              stream: false,
+              defaultTargetLanguage: "en",
+          }),
+          stream: true,
+      };
 
     await translateOperation.execute(mockEditor, 'test text', mockSettings);
 
@@ -116,7 +128,7 @@ describe('TranslateOperation', () => {
 
     await translateOperation.execute(mockEditor, 'test text', mockSettings);
 
-    expect(Notice).toHaveBeenCalledWith('Error translating text. Please check your API settings.');
+    expect(Notice).toHaveBeenCalledWith('Please configure the translate settings in the plugin settings first');
     consoleErrorSpy.mockRestore();
   });
 

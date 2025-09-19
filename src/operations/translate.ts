@@ -19,23 +19,21 @@ export class TranslateOperation {
 	}
 
 	async execute(editor: Editor, text: string, settings: AIPluginSettings, customTargetLanguage?: string): Promise<void> {
-		const config = this.configService.getConfig();
-
-		if (!config || !config.translate) {
-			new Notice('Please configure the translate settings in the YAML file first');
+		if (!settings.translate) {
+			new Notice('Please configure the translate settings in the plugin settings first');
 			return;
 		}
 
 		if (!settings.apiUrl) {
-			new Notice('Please set the API URL in settings');
+			new Notice('Please configure the translate settings in the plugin settings first');
 			return;
 		}
 
-		// If no custom target language is provided, use default from config
-		const targetLanguage = customTargetLanguage || config.translate.defaultTargetLanguage;
+		// If no custom target language is provided, use default from settings
+		const targetLanguage = customTargetLanguage || settings.translate.defaultTargetLanguage;
 
 		if (!targetLanguage) {
-			new Notice('Please specify a target language in the config file or provide one');
+			new Notice('Please configure the translate settings in the plugin settings first');
 			return;
 		}
 
@@ -46,10 +44,10 @@ export class TranslateOperation {
 					targetLanguage: targetLanguage
 				},
 				config: {
-					provider: config.translate.provider,
-					model: config.translate.model,
-					temperature: config.translate.temperature,
-					stream: config.translate.stream
+					provider: settings.translate.provider,
+					model: settings.translate.model,
+					temperature: settings.translate.temperature,
+					stream: settings.translate.stream
 				}
 			};
 
@@ -57,14 +55,14 @@ export class TranslateOperation {
 
 			// Check content type to determine if it's a streaming response
 			const contentType = response.headers.get('content-type') || '';
-			const isStreaming = config.translate.stream &&
+			const isStreaming = settings.translate.stream &&
 				(contentType.includes('text/event-stream') || contentType.includes('application/x-ndjson') || response.body);
 
 			if (isStreaming && response.body) {
 				await this.streamingService.handleStreamingResponse(
-					response, 
-					editor, 
-					`\n\n**Translation (${targetLanguage}):**\n\n`, 
+					response,
+					editor,
+					`\n\n**Translation (${targetLanguage}):**\n\n`,
 					'Text translated successfully'
 				);
 			} else {
@@ -75,7 +73,7 @@ export class TranslateOperation {
 			}
 		} catch (error) {
 			console.error('Error translating text:', error);
-			new Notice('Error translating text. Please check your API settings.');
+			new Notice('Please configure the translate settings in the plugin settings first');
 		}
 	}
 }

@@ -40,7 +40,41 @@ describe('ConfigService', () => {
 
         mockSettings = {
             configFilePath: 'config/ai-config.yaml',
-            apiUrl: 'http://localhost:3000'
+            apiUrl: 'http://localhost:3000',
+            summarize: {
+                provider: 'ollama',
+                model: 'gemma3:4b',
+                temperature: 0.3,
+                stream: true,
+                maxLength: 100
+            },
+            keywords: {
+                provider: 'ollama',
+                model: 'gemma3:4b',
+                temperature: 0.3,
+                stream: false,
+                maxKeywords: 500
+            },
+            translate: {
+                provider: 'ollama',
+                model: 'gemma3:4b',
+                temperature: 0.1,
+                stream: true,
+                defaultTargetLanguage: 'en'
+            },
+            rewrite: {
+                provider: 'ollama',
+                model: 'gemma3:4b',
+                temperature: 0.3,
+                stream: true
+            },
+            compose: {
+                provider: 'ollama',
+                model: 'gemma3:4b',
+                temperature: 0.3,
+                stream: true,
+                maxLength: 50
+            }
         };
 
         // Mock Notice
@@ -60,55 +94,102 @@ describe('ConfigService', () => {
     });
 
     describe('constructor', () => {
-        it('should initialize with app and settings', () => {
+        it('should initialize with app and settings and create config from settings', () => {
             expect(configService).toBeDefined();
-            expect(configService.getConfig()).toBeNull();
+            const config = configService.getConfig();
+            expect(config).not.toBeNull();
+            expect(config?.summarize).toEqual(mockSettings.summarize);
+            expect(config?.keywords).toEqual(mockSettings.keywords);
+            expect(config?.translate).toEqual(mockSettings.translate);
+            expect(config?.rewrite).toEqual(mockSettings.rewrite);
+            expect(config?.compose).toEqual(mockSettings.compose);
         });
     });
 
     describe('getConfig', () => {
-        it('should return null initially', () => {
-            expect(configService.getConfig()).toBeNull();
+        it('should return config initialized from settings', () => {
+            const config = configService.getConfig();
+            expect(config).not.toBeNull();
+            expect(config?.summarize).toEqual(mockSettings.summarize);
+            expect(config?.keywords).toEqual(mockSettings.keywords);
+            expect(config?.translate).toEqual(mockSettings.translate);
+            expect(config?.rewrite).toEqual(mockSettings.rewrite);
+            expect(config?.compose).toEqual(mockSettings.compose);
         });
     });
 
     describe('updateSettings', () => {
-        it('should update settings', () => {
+        it('should update settings and config', () => {
             const newSettings: AIPluginSettings = {
                 configFilePath: 'new/path.yaml',
-                apiUrl: 'http://localhost:4000'
+                apiUrl: 'http://localhost:4000',
+                summarize: {
+                    provider: 'new-provider',
+                    model: 'new-model',
+                    temperature: 0.5,
+                    stream: false,
+                    maxLength: 200
+                },
+                keywords: {
+                    provider: 'new-provider',
+                    model: 'new-model',
+                    temperature: 0.5,
+                    stream: false,
+                    maxKeywords: 100
+                },
+                translate: {
+                    provider: 'new-provider',
+                    model: 'new-model',
+                    temperature: 0.5,
+                    stream: false,
+                    defaultTargetLanguage: 'fr'
+                },
+                rewrite: {
+                    provider: 'new-provider',
+                    model: 'new-model',
+                    temperature: 0.5,
+                    stream: false
+                },
+                compose: {
+                    provider: 'new-provider',
+                    model: 'new-model',
+                    temperature: 0.5,
+                    stream: false,
+                    maxLength: 100
+                }
             };
 
             configService.updateSettings(newSettings);
 
-            // Since settings is private, we can't directly check it
-            // but we can verify behavior changes in other methods
-            expect(configService).toBeDefined();
+            // Check that config was updated with new settings
+            const config = configService.getConfig();
+            expect(config?.summarize).toEqual(newSettings.summarize);
+            expect(config?.keywords).toEqual(newSettings.keywords);
+            expect(config?.translate).toEqual(newSettings.translate);
+            expect(config?.rewrite).toEqual(newSettings.rewrite);
+            expect(config?.compose).toEqual(newSettings.compose);
         });
     });
 
     describe('setupConfigWatcher', () => {
-        it('should set up config watcher when config file path exists', () => {
-            const mockWatcherRef = { id: 'mock-watcher' };
-            mockApp.vault.on.mockReturnValue(mockWatcherRef);
-
+        it('should skip config watcher setup (deprecated)', () => {
             configService.setupConfigWatcher();
 
-            expect(mockApp.vault.on).toHaveBeenCalledWith('modify', expect.any(Function));
-            expect(console.log).toHaveBeenCalledWith('Config watcher set up for:', mockSettings.configFilePath);
+            expect(mockApp.vault.on).not.toHaveBeenCalled();
+            expect(console.log).toHaveBeenCalledWith('Config watcher setup skipped (using UI settings)');
         });
 
-        it('should show notice when config file path is not set', () => {
+        it('should handle config watcher setup when config file path is not set', () => {
             mockSettings.configFilePath = '';
             configService = new ConfigService(mockApp, mockSettings);
 
             configService.setupConfigWatcher();
 
-            expect(vi.mocked(Notice)).toHaveBeenCalledWith('AI Backends Configuration not set');
             expect(mockApp.vault.on).not.toHaveBeenCalled();
+            expect(console.log).toHaveBeenCalledWith('Config watcher setup skipped (using UI settings)');
         });
 
-        it('should clean up existing watcher before setting up new one', () => {
+        it('should handle config watcher setup with existing config file path', () => {
             const existingWatcher = { id: 'existing-watcher' };
             const newWatcher = { id: 'new-watcher' };
 
@@ -116,99 +197,53 @@ describe('ConfigService', () => {
             mockApp.vault.on.mockReturnValueOnce(existingWatcher);
             configService.setupConfigWatcher();
 
-            // Set up second watcher - should clean up first
+            // Set up second watcher - should not set up any watcher
             mockApp.vault.on.mockReturnValueOnce(newWatcher);
             configService.setupConfigWatcher();
 
-            expect(mockApp.vault.offref).toHaveBeenCalledWith(existingWatcher);
-            expect(mockApp.vault.on).toHaveBeenCalledTimes(2);
-        });
-
-        it('should trigger loadConfig when watched file is modified', () => {
-            const mockLoadConfig = vi.spyOn(configService, 'loadConfig').mockImplementation(async () => {});
-            const mockFile = { path: mockSettings.configFilePath } as TFile;
-
-            mockApp.vault.on.mockImplementation((event: string, callback: (file: TFile) => void) => {
-                // Simulate file modification
-                callback(mockFile);
-                return { id: 'watcher' };
-            });
-
-            configService.setupConfigWatcher();
-
-            expect(mockLoadConfig).toHaveBeenCalled();
-        });
-
-        it('should not trigger loadConfig when different file is modified', () => {
-            const mockLoadConfig = vi.spyOn(configService, 'loadConfig').mockImplementation(async () => {});
-            const mockFile = { path: 'different/file.yaml' } as TFile;
-
-            mockApp.vault.on.mockImplementation((event: string, callback: (file: TFile) => void) => {
-                // Simulate different file modification
-                callback(mockFile);
-                return { id: 'watcher' };
-            });
-
-            configService.setupConfigWatcher();
-
-            expect(mockLoadConfig).not.toHaveBeenCalled();
+            expect(mockApp.vault.offref).not.toHaveBeenCalled();
+            expect(mockApp.vault.on).not.toHaveBeenCalled();
         });
     });
 
     describe('loadConfig', () => {
-        it('should load and parse valid config file', async () => {
-            const mockConfigContent = 'summarize:\n  provider: "ollama"\n  model: "test"';
-            const mockParsedConfig: AIConfig = {
-                summarize: {
-                    provider: 'ollama',
-                    model: 'test'
-                }
-            } as AIConfig;
-            const mockFile = { path: mockSettings.configFilePath };
-
-            mockApp.vault.getAbstractFileByPath.mockReturnValue(mockFile);
-            mockApp.vault.read.mockResolvedValue(mockConfigContent);
-            vi.mocked(yaml.load).mockReturnValue(mockParsedConfig);
-
+        it('should skip YAML config loading (deprecated)', async () => {
             await configService.loadConfig();
 
-            expect(mockApp.vault.getAbstractFileByPath).toHaveBeenCalledWith(mockSettings.configFilePath);
-            expect(mockApp.vault.read).toHaveBeenCalledWith(mockFile);
-            expect(yaml.load).toHaveBeenCalledWith(mockConfigContent);
-            expect(configService.getConfig()).toEqual(mockParsedConfig);
-            expect(vi.mocked(Notice)).toHaveBeenCalledWith('AI Backends Configuration loaded');
+            expect(mockApp.vault.getAbstractFileByPath).not.toHaveBeenCalled();
+            expect(console.log).toHaveBeenCalledWith('YAML config loading skipped (using UI settings)');
         });
 
-        it('should return early when no config file path is set', async () => {
+        it('should skip YAML config loading when no config file path is set', async () => {
             mockSettings.configFilePath = '';
             configService = new ConfigService(mockApp, mockSettings);
 
             await configService.loadConfig();
 
-            expect(console.log).toHaveBeenCalledWith('No config file path set');
             expect(mockApp.vault.getAbstractFileByPath).not.toHaveBeenCalled();
+            expect(console.log).toHaveBeenCalledWith('YAML config loading skipped (using UI settings)');
         });
 
-        it('should handle config file not found', async () => {
+        it('should skip YAML config loading when config file is not found', async () => {
             mockApp.vault.getAbstractFileByPath.mockReturnValue(null);
 
             await configService.loadConfig();
 
-            expect(console.error).toHaveBeenCalledWith('Config file not found at path:', mockSettings.configFilePath);
-            expect(vi.mocked(Notice)).toHaveBeenCalledWith('Config file not found. Please check the file path in settings.');
+            expect(mockApp.vault.read).not.toHaveBeenCalled();
+            expect(console.log).toHaveBeenCalledWith('YAML config loading skipped (using UI settings)');
         });
 
-        it('should handle directory instead of file', async () => {
+        it('should skip YAML config loading when config path is a directory', async () => {
             const mockDirectory = new mockApp.vault.adapter.constructor();
             mockApp.vault.getAbstractFileByPath.mockReturnValue(mockDirectory);
 
             await configService.loadConfig();
 
-            expect(console.error).toHaveBeenCalledWith('Config path is a directory, not a file');
             expect(mockApp.vault.read).not.toHaveBeenCalled();
+            expect(console.log).toHaveBeenCalledWith('YAML config loading skipped (using UI settings)');
         });
 
-        it('should handle file read errors', async () => {
+        it('should skip YAML config loading when file read errors occur', async () => {
             const mockFile = { path: mockSettings.configFilePath };
             const readError = new Error('Failed to read file');
 
@@ -217,11 +252,11 @@ describe('ConfigService', () => {
 
             await configService.loadConfig();
 
-            expect(console.error).toHaveBeenCalledWith('Error loading config:', readError);
-            expect(vi.mocked(Notice)).toHaveBeenCalledWith('Error loading configuration file: Failed to read file');
+            expect(yaml.load).not.toHaveBeenCalled();
+            expect(console.log).toHaveBeenCalledWith('YAML config loading skipped (using UI settings)');
         });
 
-        it('should handle YAML parsing errors', async () => {
+        it('should skip YAML config loading when YAML parsing errors occur', async () => {
             const mockFile = { path: mockSettings.configFilePath };
             const mockConfigContent = 'invalid: yaml: content:';
             const parseError = new Error('YAML parsing failed');
@@ -234,24 +269,11 @@ describe('ConfigService', () => {
 
             await configService.loadConfig();
 
-            expect(console.error).toHaveBeenCalledWith('Error loading config:', parseError);
-            expect(vi.mocked(Notice)).toHaveBeenCalledWith('Error loading configuration file: YAML parsing failed');
+            expect(console.log).toHaveBeenCalledWith('YAML config loading skipped (using UI settings)');
         });
     });
 
     describe('cleanup', () => {
-        it('should clean up config watcher', () => {
-            const mockWatcher = { id: 'test-watcher' };
-            mockApp.vault.on.mockReturnValue(mockWatcher);
-
-            // Set up watcher
-            configService.setupConfigWatcher();
-
-            // Clean up
-            configService.cleanup();
-
-            expect(mockApp.vault.offref).toHaveBeenCalledWith(mockWatcher);
-        });
 
         it('should handle cleanup when no watcher exists', () => {
             configService.cleanup();
@@ -260,14 +282,10 @@ describe('ConfigService', () => {
         });
 
         it('should handle multiple cleanup calls', () => {
-            const mockWatcher = { id: 'test-watcher' };
-            mockApp.vault.on.mockReturnValue(mockWatcher);
-
-            configService.setupConfigWatcher();
             configService.cleanup();
             configService.cleanup(); // Second cleanup should not throw
 
-            expect(mockApp.vault.offref).toHaveBeenCalledTimes(1);
+            expect(mockApp.vault.offref).not.toHaveBeenCalled();
         });
     });
 });

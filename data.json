@@ -2,5 +2,43 @@
   "apiUrl": "http://localhost:3000",
   "apiKey": "",
   "configFilePath": "ai-backends/config.example.md",
+  "defaultProvider": "ollama",
+  "defaultModel": "gemma3:4b",
+  "defaultTemperature": 0.3,
+  "defaultStream": true,
+  "summarize": {
+    "provider": "ollama",
+    "model": "gemma3:4b",
+    "temperature": 0.3,
+    "stream": true,
+    "maxLength": 100
+  },
+  "keywords": {
+    "provider": "anthropic",
+    "model": "mistrallite:latest",
+    "temperature": 0.3,
+    "stream": false,
+    "maxKeywords": 500
+  },
+  "translate": {
+    "provider": "ollama",
+    "model": "gemma3:4b",
+    "temperature": 0.1,
+    "stream": true,
+    "defaultTargetLanguage": "en"
+  },
+  "rewrite": {
+    "provider": "ollama",
+    "model": "gemma3:4b",
+    "temperature": 0.3,
+    "stream": true
+  },
+  "compose": {
+    "provider": "ollama",
+    "model": "gemma3:4b",
+    "temperature": 0.3,
+    "stream": true,
+    "maxLength": 1000
+  },
   "configFolderPath": "ai-backends/config.yaml"
 }

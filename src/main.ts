@@ -18,7 +18,7 @@ import { FloatingIcon } from './ui/floating-icon';
 
 export class AIPlugin extends Plugin {
 	settings: AIPluginSettings;
-	private configService: ConfigService;
+	configService: ConfigService;
 	private aiService: AIService;
 	private streamingService: StreamingService;
 	private uiStateService: UIStateService;
@@ -47,16 +47,16 @@ export class AIPlugin extends Plugin {
 			}
 		);
 
-		// Delay config loading to ensure vault is ready
+		// Initialize config from settings (no more YAML loading)
 		this.app.workspace.onLayoutReady(() => {
-			this.configService.loadConfig();
-			this.configService.setupConfigWatcher();
+			// Config is now automatically initialized from plugin settings
+			console.log('AI Backends plugin initialized with UI-based settings');
 		});
 
 		// Initialize floating icon
 		this.addChild(this.floatingIcon);
 
-		await this.createExampleConfig();
+		// Example config creation removed - now using UI-based settings
 	}
 
 	private async initializeServices(): Promise<void> {
@@ -174,65 +174,15 @@ export class AIPlugin extends Plugin {
 		this.ribbonIconManager.updateSettings(this.settings);
 		this.floatingIcon.updateSettings(this.settings);
 
-		// Reload config and reset watcher when settings change
-		await this.configService.loadConfig();
-		this.configService.setupConfigWatcher();
+		// Update config when settings change (no more YAML reloading)
+		this.configService.updateSettings(this.settings);
 	}
 
 	onunload(): void {
 		this.configService.cleanup();
 	}
 
-	private async createExampleConfig(): Promise<void> {
-		const configDir = 'ai-backends';
-		const configFilePath = `${configDir}/config.example.md`;
-		const vault = this.app.vault;
-
-		try {
-			// Check if the directory exists
-			const dirExists = await vault.adapter.exists(configDir);
-			if (!dirExists) {
-				await vault.createFolder(configDir);
-			}
-
-			// Check if the file exists
-			const fileExists = await vault.adapter.exists(configFilePath);
-			if (!fileExists) {
-				const defaultConfig = `
-summarize:  
-  provider: "ollama"  
-  model: "gemma3:270m"  
-  temperature: 0.3  
-  stream: true  
-  maxLength: 100  
-keywords:  
-  provider: "ollama"  
-  model: "gemma3:270m"  
-  temperature: 0.3  
-  stream: false  
-  maxKeywords: 500  
-translate:    
-  provider: "ollama"    
-  model: "gemma3:270m"  
-  temperature: 0.1    
-  stream: true    
-  defaultTargetLanguage: "ta"  
-rewrite:    
-  provider: "ollama"    
-  model: "gemma3:270m"  
-  stream: true  
-compose:    
-  provider: "ollama" 
-  stream: true   
-  model: "gemma3:270m"    
-  maxLength: 50
-`.trim();
-				await vault.create(configFilePath, defaultConfig);
-			}
-		} catch (error) {
-			console.error('Error creating example config file:', error);
-		}
-	}
+	// Example config creation removed - now using UI-based settings
 }
 
 export default AIPlugin;

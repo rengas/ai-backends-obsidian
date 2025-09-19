@@ -19,15 +19,13 @@ export class RewriteOperation {
 	}
 
 	async execute(editor: Editor, text: string, instruction: string,tone: string ,headerLabel: string, settings: AIPluginSettings): Promise<void> {
-		const config = this.configService.getConfig();
-
-		if (!config || !config.rewrite) {
-			new Notice('Please configure the rewrite settings in the YAML file first');
+		if (!settings.rewrite) {
+			new Notice('Please configure the rewrite settings in the plugin settings first');
 			return;
 		}
 
 		if (!settings.apiUrl) {
-			new Notice('Please set the API URL in settings');
+			new Notice('Please configure the rewrite settings in the plugin settings first');
 			return;
 		}
 		try {
@@ -35,20 +33,20 @@ export class RewriteOperation {
 				payload: {
 					text,
 					instruction,
-                    ...(tone && tone.trim() !== '' && { tone })
+	                   ...(tone && tone.trim() !== '' && { tone })
 				},
 				config: {
-					provider: config.rewrite.provider,
-					model: config.rewrite.model,
-					temperature: config.rewrite.temperature,
-					stream: config.rewrite.stream
+					provider: settings.rewrite.provider,
+					model: settings.rewrite.model,
+					temperature: settings.rewrite.temperature,
+					stream: settings.rewrite.stream
 				}
 			};
 
 			const response = await this.aiService.rewrite(requestBody);
 
 			const contentType = response.headers.get('content-type') || '';
-			const isStreaming = config.rewrite.stream &&
+			const isStreaming = settings.rewrite.stream &&
 				(contentType.includes('text/event-stream') || contentType.includes('application/x-ndjson') || response.body);
 
 			if (isStreaming && response.body) {
@@ -67,7 +65,7 @@ export class RewriteOperation {
 			}
 		} catch (error) {
 			console.error('Error applying rewrite:', error);
-			new Notice('Error applying action. Please check your API settings.');
+			new Notice('Please configure the rewrite settings in the plugin settings first');
 		}
 	}
 
