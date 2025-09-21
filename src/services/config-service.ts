@@ -88,6 +88,32 @@ export class ConfigService {
 	}
 
 	/**
+	 * Migration method to load config from YAML content string and convert to settings
+	 */
+	async migrateFromYAMLContent(yamlContent: string): Promise<AIPluginSettings | null> {
+		try {
+			console.log('Attempting migration from YAML content');
+			
+			const yamlConfig = yaml.load(yamlContent) as AIConfig;
+			
+			// Convert YAML config to settings format
+			const migratedSettings: Partial<AIPluginSettings> = {
+				summarize: yamlConfig.summarize,
+				keywords: yamlConfig.keywords,
+				translate: yamlConfig.translate,
+				rewrite: yamlConfig.rewrite,
+				compose: yamlConfig.compose
+			};
+
+			console.log('Migration from content successful:', migratedSettings);
+			return migratedSettings as AIPluginSettings;
+		} catch (error) {
+			console.error('Error during migration from content:', error);
+			throw new Error('Error migrating configuration: ' + error.message);
+		}
+	}
+
+	/**
 	 * Export current settings to YAML format
 	 */
 	async exportToYAML(): Promise<string> {

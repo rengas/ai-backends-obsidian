@@ -1,7 +1,7 @@
 {
   "apiUrl": "http://localhost:3000",
   "apiKey": "",
-  "configFilePath": "ai-backends/config.example.md",
+  "configFilePath": "ai-config/config.yaml",
   "defaultProvider": "ollama",
   "defaultModel": "gemma3:4b",
   "defaultTemperature": 0.3,
@@ -14,7 +14,7 @@
     "maxLength": 100
   },
   "keywords": {
-    "provider": "anthropic",
+    "provider": "ollama",
     "model": "mistrallite:latest",
     "temperature": 0.3,
     "stream": false,
@@ -38,7 +38,6 @@
     "model": "gemma3:4b",
     "temperature": 0.3,
     "stream": true,
-    "maxLength": 1000
-  },
-  "configFolderPath": "ai-backends/config.yaml"
+    "maxLength": 50
+  }
 }

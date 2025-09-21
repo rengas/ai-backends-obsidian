@@ -2,6 +2,8 @@ import { App, PluginSettingTab, Setting, DropdownComponent, TextComponent, Toggl
 import { AIPlugin } from '../main';
 import { SUPPORTED_LANGUAGES } from '../types/languages';
 import { TONES } from '../types/tones';
+import { ExportPathModal } from './export-path-modal';
+import { ImportFileModal } from './import-file-modal';
 
 export class AIPluginSettingTab extends PluginSettingTab {
 	plugin: AIPlugin;
@@ -324,12 +326,56 @@ export class AIPluginSettingTab extends PluginSettingTab {
 				.setButtonText('Import')
 				.setCta()
 				.onClick(async () => {
-					const migratedSettings = await this.plugin.configService.migrateFromYAML();
-					if (migratedSettings) {
-						// Update settings with migrated values
-						Object.assign(this.plugin.settings, migratedSettings);
-						await this.plugin.saveSettings();
-						this.display(); // Refresh the UI
+					try {
+						// Create a modal to let the user choose the file to import
+						const modal = new ImportFileModal(this.app, 'yaml');
+						modal.onImportComplete = (filePath: string | null, fileContent: string | null) => {
+							if (filePath && fileContent) {
+								// Process the migration asynchronously but don't wait for the callback
+								this.plugin.configService.migrateFromYAMLContent(fileContent).then(async (migratedSettings) => {
+									if (migratedSettings) {
+										// Update settings with migrated values
+										Object.assign(this.plugin.settings, migratedSettings);
+										await this.plugin.saveSettings();
+										this.display(); // Refresh the UI
+										
+										// Show success message
+										const notice = document.createElement('div');
+										notice.textContent = `Configuration imported from ${filePath}`;
+										notice.style.padding = '10px';
+										notice.style.background = 'var(--background-modifier-success)';
+										notice.style.color = 'var(--text-normal)';
+										notice.style.borderRadius = '5px';
+										notice.style.marginTop = '10px';
+										container.appendChild(notice);
+										setTimeout(() => notice.remove(), 3000);
+									}
+								}).catch((error) => {
+									console.error('Migration failed:', error);
+									const notice = document.createElement('div');
+									notice.textContent = `Migration failed: ${error.message}`;
+									notice.style.padding = '10px';
+									notice.style.background = 'var(--background-modifier-error)';
+									notice.style.color = 'var(--text-normal)';
+									notice.style.borderRadius = '5px';
+									notice.style.marginTop = '10px';
+									container.appendChild(notice);
+									setTimeout(() => notice.remove(), 3000);
+								});
+							}
+						};
+						modal.open();
+					} catch (error) {
+						console.error('Import failed:', error);
+						const notice = document.createElement('div');
+						notice.textContent = `Import failed: ${error.message}`;
+						notice.style.padding = '10px';
+						notice.style.background = 'var(--background-modifier-error)';
+						notice.style.color = 'var(--text-normal)';
+						notice.style.borderRadius = '5px';
+						notice.style.marginTop = '10px';
+						container.appendChild(notice);
+						setTimeout(() => notice.remove(), 3000);
 					}
 				}));
 
@@ -341,19 +387,24 @@ export class AIPluginSettingTab extends PluginSettingTab {
 				.onClick(async () => {
 					try {
 						const yamlContent = await this.plugin.configService.exportToYAML();
-						// Create a new file with the exported content
-						const fileName = `ai-config-export-${new Date().toISOString().split('T')[0]}.yaml`;
-						await this.app.vault.create(fileName, yamlContent);
-						// Show success message
-						const notice = document.createElement('div');
-						notice.textContent = `Configuration exported to ${fileName}`;
-						notice.style.padding = '10px';
-						notice.style.background = 'var(--background-modifier-success)';
-						notice.style.color = 'var(--text-normal)';
-						notice.style.borderRadius = '5px';
-						notice.style.marginTop = '10px';
-						container.appendChild(notice);
-						setTimeout(() => notice.remove(), 3000);
+						
+						// Create a modal to let the user choose the file path
+						const modal = new ExportPathModal(this.app, 'ai-config-export', 'yaml', yamlContent);
+						modal.onExportComplete = (savedPath: string | null) => {
+							if (savedPath) {
+								// Show success message
+								const notice = document.createElement('div');
+								notice.textContent = `Configuration exported to ${savedPath}`;
+								notice.style.padding = '10px';
+								notice.style.background = 'var(--background-modifier-success)';
+								notice.style.color = 'var(--text-normal)';
+								notice.style.borderRadius = '5px';
+								notice.style.marginTop = '10px';
+								container.appendChild(notice);
+								setTimeout(() => notice.remove(), 3000);
+							}
+						};
+						modal.open();
 					} catch (error) {
 						console.error('Export failed:', error);
 						const notice = document.createElement('div');
@@ -393,7 +444,7 @@ export class AIPluginSettingTab extends PluginSettingTab {
 				.onClick(async () => {
 					try {
 						// Simple API test
-						const response = await fetch(`${this.plugin.settings.apiUrl}/health`, {
+						const response = await fetch(`${this.plugin.settings.apiUrl}/api/v1/hello`, {
 							method: 'GET',
 							headers: {
 								'Content-Type': 'application/json',
@@ -402,15 +453,20 @@ export class AIPluginSettingTab extends PluginSettingTab {
 						});
 						
 						if (response.ok) {
-							const notice = document.createElement('div');
-							notice.textContent = 'API connection successful!';
-							notice.style.padding = '10px';
-							notice.style.background = 'var(--background-modifier-success)';
-							notice.style.color = 'var(--text-normal)';
-							notice.style.borderRadius = '5px';
-							notice.style.marginTop = '10px';
-							container.appendChild(notice);
-							setTimeout(() => notice.remove(), 3000);
+							const data = await response.json();
+							if (data.status === 'ok' && data.message === 'Service is healthy') {
+								const notice = document.createElement('div');
+								notice.textContent = 'API connection successful!';
+								notice.style.padding = '10px';
+								notice.style.background = 'var(--background-modifier-success)';
+								notice.style.color = 'var(--text-normal)';
+								notice.style.borderRadius = '5px';
+								notice.style.marginTop = '10px';
+								container.appendChild(notice);
+								setTimeout(() => notice.remove(), 3000);
+							} else {
+								throw new Error('Invalid API response format');
+							}
 						} else {
 							throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 						}
