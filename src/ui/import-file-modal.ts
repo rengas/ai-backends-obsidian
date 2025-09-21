@@ -107,7 +107,6 @@ export class ImportFileModal extends Modal {
         };
 
         contentEl.addEventListener('keydown', handleKeyPress);
-        this.scope.register([], 'keydown', handleKeyPress);
     }
 
     private async importFile(): Promise<void> {

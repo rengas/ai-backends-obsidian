@@ -444,7 +444,7 @@ export class AIPluginSettingTab extends PluginSettingTab {
 				.onClick(async () => {
 					try {
 						// Simple API test
-						const response = await fetch(`${this.plugin.settings.apiUrl}/health`, {
+						const response = await fetch(`${this.plugin.settings.apiUrl}/api/v1/hello`, {
 							method: 'GET',
 							headers: {
 								'Content-Type': 'application/json',
@@ -453,15 +453,20 @@ export class AIPluginSettingTab extends PluginSettingTab {
 						});
 						
 						if (response.ok) {
-							const notice = document.createElement('div');
-							notice.textContent = 'API connection successful!';
-							notice.style.padding = '10px';
-							notice.style.background = 'var(--background-modifier-success)';
-							notice.style.color = 'var(--text-normal)';
-							notice.style.borderRadius = '5px';
-							notice.style.marginTop = '10px';
-							container.appendChild(notice);
-							setTimeout(() => notice.remove(), 3000);
+							const data = await response.json();
+							if (data.status === 'ok' && data.message === 'Service is healthy') {
+								const notice = document.createElement('div');
+								notice.textContent = 'API connection successful!';
+								notice.style.padding = '10px';
+								notice.style.background = 'var(--background-modifier-success)';
+								notice.style.color = 'var(--text-normal)';
+								notice.style.borderRadius = '5px';
+								notice.style.marginTop = '10px';
+								container.appendChild(notice);
+								setTimeout(() => notice.remove(), 3000);
+							} else {
+								throw new Error('Invalid API response format');
+							}
 						} else {
 							throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 						}

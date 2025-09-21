@@ -44,7 +44,7 @@ export class ExportPathModal extends Modal {
         pathInfo.style.background = 'var(--background-secondary)';
         pathInfo.style.borderRadius = '4px';
         pathInfo.style.fontSize = '0.9em';
-        pathInfo.textContent = `The file will be saved in .ai-backends as: ${this.fileName}.${this.extension}`;
+        pathInfo.textContent = `The file will be saved in ai-backends as: ${this.fileName}.${this.extension}`;
 
         // Buttons
         const buttonContainer = contentEl.createDiv();
@@ -88,7 +88,6 @@ export class ExportPathModal extends Modal {
         };
 
         contentEl.addEventListener('keydown', handleKeyPress);
-        this.scope.register([], 'keydown', handleKeyPress);
     }
 
     private async exportFile(): Promise<void> {
@@ -99,11 +98,11 @@ export class ExportPathModal extends Modal {
                 finalFileName = `${finalFileName}.${this.extension}`;
             }
 
-            // Create the file in the .ai-backends directory
+            // Create the file in the ai-backends directory
             const configDir = 'ai-backends';
             const filePath = `${configDir}/${finalFileName}`;
             
-            // Check if .ai-backends directory exists, create if it doesn't
+            // Check if ai-backends directory exists, create if it doesn't
             try {
                 await this.app.vault.createFolder(configDir);
             } catch (folderError) {
@@ -113,7 +112,7 @@ export class ExportPathModal extends Modal {
                 }
             }
 
-            // Create the file in the .ai-backends directory
+            // Create the file in the ai-backends directory
             await this.app.vault.create(filePath, this.content);
             
             // Close the modal and call the callback
