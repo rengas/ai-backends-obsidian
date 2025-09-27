@@ -1,0 +1,45 @@
+# AI Backends Server Configuration
+
+# Server settings
+port: "3000"
+host: "localhost"
+logLevel: "info"
+enableCors: true
+
+# Ollama settings
+ollama:
+  host: "localhost"
+  port: "11434"
+  
+# Model settings
+models:
+  default: "gemma3:4b"
+  alternatives:
+    - "mistrallite:latest"
+    - "llama2:7b"
+  
+# Operation settings
+operations:
+  summarize:
+    model: "gemma3:4b"
+    temperature: 0.3
+    maxLength: 100
+    
+  keywords:
+    model: "mistrallite:latest"
+    temperature: 0.3
+    maxKeywords: 500
+    
+  translate:
+    model: "gemma3:4b"
+    temperature: 0.1
+    defaultTargetLanguage: "en"
+    
+  rewrite:
+    model: "gemma3:4b"
+    temperature: 0.3
+    
+  compose:
+    model: "gemma3:4b"
+    temperature: 0.3
+    maxLength: 50

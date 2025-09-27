@@ -1,0 +1,32 @@
+port: "3000"
+host: localhost
+logLevel: info
+enableCors: true
+ollama:
+    host: localhost
+    port: "11434"
+models:
+    default: gemma3:4b
+    alternatives:
+        - mistrallite:latest
+        - llama2:7b
+operations:
+    summarize:
+        model: gemma3:4b
+        temperature: 0.3
+        maxLength: 100
+    keywords:
+        model: mistrallite:latest
+        temperature: 0.3
+        maxKeywords: 500
+    translate:
+        model: gemma3:4b
+        temperature: 0.1
+        defaultTargetLanguage: en
+    rewrite:
+        model: gemma3:4b
+        temperature: 0.3
+    compose:
+        model: gemma3:4b
+        temperature: 0.3
+        maxLength: 50
