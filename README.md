@@ -3,6 +3,9 @@
 This plugin integrates with aibackends.com to provide AI-powered text analysis features directly within Obsidian. 
 Transform your notes with intelligent summarization and keyword extraction using various AI providers.
 
+Watch demo video here https://www.youtube.com/embed/7OS2avirmZ4
+
+
 ## Features
 
 - **Text Summarization**: Generate concise summaries of selected text using configurable AI models
