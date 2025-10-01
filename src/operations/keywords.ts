@@ -1,17 +1,14 @@
 import { Editor, Notice } from 'obsidian';
 import { AIService } from '../services/ai-service';
-import { ConfigService } from '../services/config-service';
 import { AIPluginSettings } from '../types/config';
 import { KeywordsRequest } from '../types/requests';
 import { KeywordsResponse } from '../types/responses';
 
 export class KeywordsOperation {
 	private aiService: AIService;
-	private configService: ConfigService;
 
-	constructor(aiService: AIService, configService: ConfigService) {
+	constructor(aiService: AIService) {
 		this.aiService = aiService;
-		this.configService = configService;
 	}
 
 	async execute(editor: Editor, text: string, settings: AIPluginSettings): Promise<void> {

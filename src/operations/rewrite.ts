@@ -10,12 +10,10 @@ import { appendToEndOfDocument } from '../utils/editor-utils';
 export class RewriteOperation {
 	private aiService: AIService;
 	private streamingService: StreamingService;
-	private configService: ConfigService;
 
-	constructor(aiService: AIService, streamingService: StreamingService, configService: ConfigService) {
+	constructor(aiService: AIService, streamingService: StreamingService) {
 		this.aiService = aiService;
 		this.streamingService = streamingService;
-		this.configService = configService;
 	}
 
 	async execute(editor: Editor, text: string, instruction: string,tone: string ,headerLabel: string, settings: AIPluginSettings): Promise<void> {

@@ -10,12 +10,10 @@ import { appendToEndOfDocument } from '../utils/editor-utils';
 export class TranslateOperation {
 	private aiService: AIService;
 	private streamingService: StreamingService;
-	private configService: ConfigService;
 
-	constructor(aiService: AIService, streamingService: StreamingService, configService: ConfigService) {
+	constructor(aiService: AIService, streamingService: StreamingService) {
 		this.aiService = aiService;
 		this.streamingService = streamingService;
-		this.configService = configService;
 	}
 
 	async execute(editor: Editor, text: string, settings: AIPluginSettings, customTargetLanguage?: string): Promise<void> {

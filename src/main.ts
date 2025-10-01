@@ -70,26 +70,21 @@ export class AIPlugin extends Plugin {
 		this.summarizeOperation = new SummarizeOperation(
 			this.aiService, 
 			this.streamingService, 
-			this.configService
 		);
 		this.translateOperation = new TranslateOperation(
 			this.aiService, 
 			this.streamingService, 
-			this.configService
 		);
 		this.keywordsOperation = new KeywordsOperation(
-			this.aiService, 
-			this.configService
+			this.aiService,
 		);
 		this.rewriterOperation = new RewriteOperation(
 			this.aiService,
-			this.streamingService,
-			this.configService
+			this.streamingService
 		);
 		this.composeOperation = new ComposeOperation(
 			this.aiService,
 			this.streamingService,
-            this.configService
 		);
 
 		this.commandsManager = new CommandsManager(

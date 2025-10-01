@@ -77,7 +77,7 @@ describe('SummarizeOperation', () => {
           }
       };
 
-    summarizeOperation = new SummarizeOperation(mockAIService, mockStreamingService, mockConfigService);
+    summarizeOperation = new SummarizeOperation(mockAIService, mockStreamingService);
   });
 
   it('should show notice if summarize settings are missing', async () => {

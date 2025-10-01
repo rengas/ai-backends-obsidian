@@ -46,10 +46,10 @@ describe('Commands', () => {
                  json: vi.fn().mockResolvedValue({ summary: 'test summary' })
              })
          };
-         mockSummarizeOperation =  new SummarizeOperation(mockAiService, {} as any, mockConfigService);
-         mockTranslateOperation = new TranslateOperation({} as any, {} as any, {} as any);
-         mockKeywordsOperation =  new KeywordsOperation({} as any, {} as any);
-         mockRewriterOperation = new RewriteOperation({} as any, {} as any,{} as any);
+         mockSummarizeOperation =  new SummarizeOperation(mockAiService, {} as any);
+         mockTranslateOperation = new TranslateOperation({} as any, {} as any);
+         mockKeywordsOperation =  new KeywordsOperation({} as any);
+         mockRewriterOperation = new RewriteOperation({} as any, {} as any);
          vi.spyOn(mockSummarizeOperation, 'execute');
     });
 
