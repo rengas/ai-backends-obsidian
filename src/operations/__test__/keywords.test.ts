@@ -45,7 +45,7 @@ describe('KeywordsOperation', () => {
           },
       };
 
-    keywordsOperation = new KeywordsOperation(mockAIService, mockConfigService);
+    keywordsOperation = new KeywordsOperation(mockAIService);
 
     (mockConfigService.getConfig as any).mockReturnValue({
       keywords: {

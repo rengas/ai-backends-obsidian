@@ -49,7 +49,7 @@ describe('RewriteOperation', () => {
           },
       };
 
-    rewriteOperation = new RewriteOperation(mockAIService, mockStreamingService, mockConfigService);
+    rewriteOperation = new RewriteOperation(mockAIService, mockStreamingService);
 
     (mockConfigService.getConfig as any).mockReturnValue({
       rewrite: {

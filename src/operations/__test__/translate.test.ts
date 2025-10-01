@@ -50,7 +50,7 @@ describe('TranslateOperation', () => {
           },
       };
 
-    translateOperation = new TranslateOperation(mockAIService, mockStreamingService, mockConfigService);
+    translateOperation = new TranslateOperation(mockAIService, mockStreamingService);
 
     (mockConfigService.getConfig as any).mockReturnValue({
       translate: {

@@ -51,7 +51,7 @@ describe('ComposeOperation', () => {
         },
     };
 
-    composeOperation = new ComposeOperation(mockAIService, mockStreamingService, mockConfigService);
+    composeOperation = new ComposeOperation(mockAIService, mockStreamingService);
 
     // Mock service methods
     (mockConfigService.getConfig as any).mockReturnValue({
